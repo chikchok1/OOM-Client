@@ -53,7 +53,7 @@ public class ReservClassView extends javax.swing.JFrame {
         LocalDate tomorrow = LocalDate.now().plusDays(1);
         Date minDate = Date.from(tomorrow.atStartOfDay(ZoneId.systemDefault()).toInstant());
         dateChooser.setMinSelectableDate(minDate);
-        dateChooser.setDate(minDate);  // ✅ 기본값: 내일로 설정
+        dateChooser.setDate(minDate);  //  기본값: 내일로 설정
         
         // 최대 날짜: 1개월 후
         LocalDate maxDate = LocalDate.now().plusMonths(1);
