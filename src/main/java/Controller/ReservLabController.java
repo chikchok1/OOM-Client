@@ -11,12 +11,14 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.*;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
 public class ReservLabController {
     private ReservLabView view;
-    private Map<String, Set<String>> reservedMap = new HashMap<>();
-private final Object loadLock = new Object();
+    // ✅ Thread-safe: ConcurrentHashMap 사용
+    private final Map<String, Set<String>> reservedMap = new ConcurrentHashMap<>();
+    private final Object loadLock = new Object();
 
     public ReservLabController(ReservLabView view) {
         this.view = view;
@@ -124,7 +126,8 @@ private final Object loadLock = new Object();
 
         try {
             String normalizedRoom = roomName.endsWith("호") ? roomName : roomName + "호";
-            reservedMap.put(normalizedRoom, new HashSet<>());
+            // ✅ Thread-safe Set으로 초기화
+            reservedMap.put(normalizedRoom, ConcurrentHashMap.newKeySet());
 
             System.out.println("[ReservLabController] " + normalizedRoom + " 예약 정보 요청 시작");
 
@@ -137,14 +140,20 @@ private final Object loadLock = new Object();
                 if (line.equals("END_OF_RESERVATION")) break;
 
                 String[] parts = line.split(",");
-                if (parts.length >= 7) {
-                    String status = parts[6].trim();
+                // ✅ 9개 필드로 수정 (name,room,date,day,time,purpose,role,status,studentCount)
+                if (parts.length >= 9) {
+                    String status = parts[7].trim();  // ✅ 인덱스 7로 수정
                     if (status.equals("예약됨") || status.equals("대기")) {
                         String room = parts[1].trim();
-                        String day = parts[2].trim().replace("요일", "");
-                        String time = parts[3].trim().substring(0, 3);
+                        String dateString = parts[2].trim();  // 날짜
+                        String day = parts[3].trim().replace("요일", "");  // 요일
+                        String time = parts[4].trim();  // ✅ 인덱스 4로 수정
+                        if (time.length() >= 3) {
+                            time = time.substring(0, 3);
+                        }
                         room = room.endsWith("호") ? room : room + "호";
-                        reservedMap.computeIfAbsent(room, k -> new HashSet<>()).add(day + "_" + time);
+                        // ✅ Thread-safe: ConcurrentHashMap.newKeySet() 사용
+                        reservedMap.computeIfAbsent(room, k -> ConcurrentHashMap.newKeySet()).add(day + "_" + time);
                         count++;
                     }
                 }

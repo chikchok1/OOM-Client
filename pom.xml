@@ -26,7 +26,6 @@
             <version>1.0-SNAPSHOT</version>
         </dependency>
 
-
         <!-- ClassReservationServer 의존성 추가 -->
         <dependency>
             <groupId>cse.oop5</groupId>
@@ -57,6 +56,14 @@
             <version>5.11.0</version>
             <scope>test</scope>
         </dependency>
+        
+        <!-- JCalendar 의존성 -->
+        <dependency>
+            <groupId>com.toedter</groupId>
+            <artifactId>jcalendar</artifactId>
+            <version>1.4</version>
+        </dependency>
+        
     </dependencies>
 
     <build>
@@ -81,7 +88,7 @@
                 <version>3.5.1</version>
                 <executions>
                     <execution>
-                        <id>main-jar</id> <!-- 고유한 ID -->
+                        <id>main-jar</id>
                         <phase>package</phase>
                         <goals>
                             <goal>shade</goal>
@@ -99,5 +106,4 @@
             </plugin>
         </plugins>
     </build>
-
 </project>

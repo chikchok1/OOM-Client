@@ -89,12 +89,10 @@ public class ReservClassControllerTest {
             }
         }
 
-        @Override
         protected void loadReservationDataFromServer(String roomName) {
             // 생략
         }
 
-        @Override
         protected String sendReservationRequestToServer(String name, String room, String day, String time, String purpose, String role, int studentCount) {
             try {
                 BufferedReader in = Session.getInstance().getIn();
