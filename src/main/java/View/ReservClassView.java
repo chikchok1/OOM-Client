@@ -36,8 +36,7 @@ public class ReservClassView extends javax.swing.JFrame {
         initComponents();
         initDatePicker();  // ✅ 날짜 선택기 초기화
         
-        //  loadClassrooms() 제거 - Controller에서 처리할 예정
-        //  Controller에서 모든 이벤트 처리
+        
     }
 
     /**
@@ -64,18 +63,13 @@ public class ReservClassView extends javax.swing.JFrame {
         dateLabel = new javax.swing.JLabel("예약 날짜:");
         dateLabel.setFont(new java.awt.Font("맑은 고딕", 0, 12));
         
-        // ✅ 기존 Day ComboBox 위치에 추가 (절대 좌표 기반)
-        dateLabel.setBounds(68, 235, 70, 25);  // "요일 선택" 위치
-        dateChooser.setBounds(150, 230, 200, 30);  // Day ComboBox 위치
+        //  기존 Day ComboBox 위치에 추가 (절대 좌표 기반)
+        dateLabel.setBounds(68, 270, 70, 25);  // "요일 선택" 위치
+        dateChooser.setBounds(150, 265, 200, 30);  // Day ComboBox 위치
         
         getContentPane().add(dateLabel);
         getContentPane().add(dateChooser);
         
-        // ✅ 기존 Day ComboBox는 숨기기
-        Day.setVisible(false);
-        jLabel4.setVisible(false);  // "요일 선택" 레이블도 숨기기
-        
-    
         
         // 날짜 변경 시 수용인원 업데이트 (컴트 처리로 변경)
         // dateChooser.addPropertyChangeListener("date", evt -> updateCapacityInfo());
@@ -120,33 +114,19 @@ public class ReservClassView extends javax.swing.JFrame {
         return dayNames[dayOfWeek - 1] + "요일";
     }
 
-    // ✅ Controller에서 호출할 메소드
-    public void loadClassrooms() {
-        // ✅ 서버에서 강의실 목록 받아오기
-        try {
-            if (!Model.Session.getInstance().isConnected()) {
-                System.err.println("서버 연결이 없습니다.");
-                return;
-            }
-            
-            java.io.PrintWriter out = Model.Session.getInstance().getOut();
-            java.io.BufferedReader in = Model.Session.getInstance().getIn();
-            
-            out.println("GET_CLASSROOMS");
-            out.flush();
-            
-            String response = in.readLine();
-            if (response != null && response.startsWith("CLASSROOMS:")) {
-                String classroomList = response.substring("CLASSROOMS:".length());
-                String[] classrooms = classroomList.split(",");
-                Class.setModel(new DefaultComboBoxModel<>(classrooms));
-                System.out.println("강의실 로드 완료: " + classrooms.length + "개");
-            } else {
-                System.err.println("강의실 목록 조회 실패: " + response);
-            }
-            
-        } catch (java.io.IOException e) {
-            System.err.println("강의실 목록 조회 중 오류: " + e.getMessage());
+    /**
+     * 강의실 목록을 ComboBox에 설정
+     * Controller에서 데이터를 전달받아 표시만 함
+     * @param classrooms 강의실 이름 목록
+     */
+    public void setClassrooms(java.util.List<String> classrooms) {
+        if (classrooms == null || classrooms.isEmpty()) {
+            System.err.println("[ReservClassView] 강의실 목록이 비어있습니다.");
+            // 빈 모델 설정 (사용자에게 오류 표시)
+            Class.setModel(new DefaultComboBoxModel<>(new String[0]));
+        } else {
+            Class.setModel(new DefaultComboBoxModel<>(classrooms.toArray(new String[0])));
+            System.out.println("[ReservClassView] 강의실 " + classrooms.size() + "개 표시 완료");
         }
     }
 
@@ -180,12 +160,43 @@ public class ReservClassView extends javax.swing.JFrame {
         Reservation.addActionListener(listener); // 버튼에 바로 리스너 붙이기
     }
 
-    public String getSelectedClassRoom() {
-        return Class.getSelectedItem().toString();
-    }
+  public String getSelectedClassRoom() {
+    String room = Class.getSelectedItem().toString();
+    return normalizeRoomName(room);
+}
+
 
     public String getSelectedTime() {
         return Time.getSelectedItem().toString();
+    }
+
+    private String normalizeRoomName(String room) {
+    if (room == null) return null;
+
+    room = room.trim();
+
+    // 908호:CLASS → 908호
+    if (room.contains(":")) {
+        room = room.substring(0, room.indexOf(":"));
+    }
+
+    // 혹시 모를 예외 처리
+    if (!room.endsWith("호")) {
+        room = room + "호";
+    }
+
+    return room;
+}
+
+    
+    // ✅ 종료 시간 가져오기
+    public String getSelectedEndTime() {
+        return EndTime.getSelectedItem().toString();
+    }
+
+    // ✅ 종료 시간 콤보박스 반환
+    public javax.swing.JComboBox<String> getEndTimeComboBox() {
+        return EndTime;
     }
 
     public String getPurpose() {
@@ -224,10 +235,6 @@ public class ReservClassView extends javax.swing.JFrame {
         showpeoplenumber.setText(text);
     }
 
-    public javax.swing.JComboBox<String> getDayComboBox() {
-        return Day;
-    }
-
     //  시간 선택 콤보박스 반환
     public javax.swing.JComboBox<String> getTimeComboBox() {
         return Time;
@@ -250,10 +257,8 @@ public class ReservClassView extends javax.swing.JFrame {
         jTextArea1 = new javax.swing.JTextArea();
         jLabel1 = new javax.swing.JLabel();
         jLabel3 = new javax.swing.JLabel();
-        jLabel4 = new javax.swing.JLabel();
         jLabel5 = new javax.swing.JLabel();
         Class = new javax.swing.JComboBox<>();
-        Day = new javax.swing.JComboBox<>();
         Time = new javax.swing.JComboBox<>();
         jLabel6 = new javax.swing.JLabel();
         Purpose = new javax.swing.JComboBox<>();
@@ -266,6 +271,8 @@ public class ReservClassView extends javax.swing.JFrame {
         peoplenumber = new javax.swing.JTextField();
         jLabel2 = new javax.swing.JLabel();
         showpeoplenumber = new javax.swing.JTextField();
+        jLabel8 = new javax.swing.JLabel();
+        EndTime = new javax.swing.JComboBox<>();
 
         jTextArea1.setColumns(20);
         jTextArea1.setRows(5);
@@ -278,21 +285,12 @@ public class ReservClassView extends javax.swing.JFrame {
 
         jLabel3.setText("강의실 선택");
 
-        jLabel4.setText("요일 선택");
-
-        jLabel5.setText("시간 선택");
+        jLabel5.setText("시작 시간 선택");
 
         Class.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "908호", "912호", "913호", "914호" }));
         Class.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 ClassActionPerformed(evt);
-            }
-        });
-
-        Day.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "월요일", "화요일", "수요일", "목요일", "금요일" }));
-        Day.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                DayActionPerformed(evt);
             }
         });
 
@@ -345,7 +343,8 @@ public class ReservClassView extends javax.swing.JFrame {
             calendarPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(calendarPanelLayout.createSequentialGroup()
                 .addContainerGap()
-                .addComponent(calendarScrollPane, javax.swing.GroupLayout.PREFERRED_SIZE, 0, Short.MAX_VALUE))
+                .addComponent(calendarScrollPane, javax.swing.GroupLayout.PREFERRED_SIZE, 470, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
         calendarPanelLayout.setVerticalGroup(
             calendarPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -371,6 +370,15 @@ public class ReservClassView extends javax.swing.JFrame {
             }
         });
 
+        jLabel8.setText("종료 시간 선택");
+
+        EndTime.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "1교시(09:00~10:00)", "2교시(10:00~11:00)", "3교시(11:00~12:00)", "4교시(12:00~13:00)", "5교시(13:00~14:00)", "6교시(14:00~15:00)", "7교시(15:00~16:00)", "8교시(16:00~17:00)", "9교시(17:00~18:00)" }));
+        EndTime.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                EndTimeActionPerformed(evt);
+            }
+        });
+
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
         layout.setHorizontalGroup(
@@ -385,68 +393,72 @@ public class ReservClassView extends javax.swing.JFrame {
                                 .addGap(0, 0, Short.MAX_VALUE))
                             .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
                                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                                    .addComponent(jLabel6, javax.swing.GroupLayout.DEFAULT_SIZE, 163, Short.MAX_VALUE)
+                                    .addComponent(jLabel6, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                                     .addComponent(jLabel7, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                                    .addComponent(jLabel4, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                                    .addComponent(jLabel5, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                                    .addComponent(jLabel3, javax.swing.GroupLayout.DEFAULT_SIZE, 163, Short.MAX_VALUE))
+                                    .addComponent(jLabel3, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                                .addGap(138, 138, 138))
+                            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
+                                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
+                                    .addComponent(jLabel8, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                    .addComponent(jLabel5, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
                                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                                    .addComponent(Class, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                    .addComponent(Day, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                    .addComponent(Time, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                    .addComponent(Purpose, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                    .addComponent(peoplenumber, javax.swing.GroupLayout.PREFERRED_SIZE, 72, javax.swing.GroupLayout.PREFERRED_SIZE)))))
+                                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                        .addComponent(Class, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                        .addComponent(Time, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                        .addComponent(Purpose, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                        .addComponent(EndTime, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                        .addComponent(peoplenumber, javax.swing.GroupLayout.PREFERRED_SIZE, 72, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED))))
                     .addGroup(layout.createSequentialGroup()
                         .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                         .addComponent(Before, javax.swing.GroupLayout.PREFERRED_SIZE, 100, javax.swing.GroupLayout.PREFERRED_SIZE)
                         .addGap(144, 144, 144)))
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addGroup(layout.createSequentialGroup()
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                         .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                             .addComponent(calendarPanel, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                             .addGroup(layout.createSequentialGroup()
                                 .addComponent(jLabel2)
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 66, Short.MAX_VALUE)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                                 .addComponent(showpeoplenumber, javax.swing.GroupLayout.PREFERRED_SIZE, 260, javax.swing.GroupLayout.PREFERRED_SIZE)))
                         .addGap(27, 27, 27))
                     .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                         .addComponent(Reservation, javax.swing.GroupLayout.PREFERRED_SIZE, 100, javax.swing.GroupLayout.PREFERRED_SIZE)
                         .addGap(69, 69, 69))))
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(layout.createSequentialGroup()
-                .addGap(33, 33, 33)
-                .addComponent(calendarPanel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(jLabel2)
-                    .addComponent(showpeoplenumber, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addGap(60, 60, 60)
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(Reservation, javax.swing.GroupLayout.PREFERRED_SIZE, 36, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(Before, javax.swing.GroupLayout.PREFERRED_SIZE, 36, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-            .addGroup(layout.createSequentialGroup()
-                .addGap(25, 25, 25)
-                .addComponent(jLabel1)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(jLabel3)
-                    .addComponent(Class, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(jLabel4)
                     .addGroup(layout.createSequentialGroup()
-                        .addComponent(Day, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addGap(9, 9, 9)
+                        .addGap(33, 33, 33)
+                        .addComponent(calendarPanel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                            .addComponent(jLabel2)
+                            .addComponent(showpeoplenumber, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                        .addGap(60, 60, 60)
+                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                            .addComponent(Reservation, javax.swing.GroupLayout.PREFERRED_SIZE, 36, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addComponent(Before, javax.swing.GroupLayout.PREFERRED_SIZE, 36, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                    .addGroup(layout.createSequentialGroup()
+                        .addGap(25, 25, 25)
+                        .addComponent(jLabel1)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                            .addComponent(jLabel3)
+                            .addComponent(Class, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                         .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                             .addComponent(Time, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                             .addComponent(jLabel5))
-                        .addGap(18, 18, 18)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                            .addComponent(EndTime, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addComponent(jLabel8))
+                        .addGap(15, 15, 15)
                         .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                             .addComponent(Purpose, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                             .addComponent(jLabel6))
@@ -488,9 +500,9 @@ public class ReservClassView extends javax.swing.JFrame {
         // TODO add your handling code here:
     }//GEN-LAST:event_showpeoplenumberActionPerformed
 
-    private void DayActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_DayActionPerformed
+    private void EndTimeActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_EndTimeActionPerformed
         // TODO add your handling code here:
-    }//GEN-LAST:event_DayActionPerformed
+    }//GEN-LAST:event_EndTimeActionPerformed
 
     /**
      * @param args the command line arguments
@@ -531,7 +543,7 @@ public class ReservClassView extends javax.swing.JFrame {
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton Before;
     private javax.swing.JComboBox<String> Class;
-    private javax.swing.JComboBox<String> Day;
+    private javax.swing.JComboBox<String> EndTime;
     private javax.swing.JComboBox<String> Purpose;
     private javax.swing.JButton Reservation;
     private javax.swing.JComboBox<String> Time;
@@ -541,10 +553,10 @@ public class ReservClassView extends javax.swing.JFrame {
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel2;
     private javax.swing.JLabel jLabel3;
-    private javax.swing.JLabel jLabel4;
     private javax.swing.JLabel jLabel5;
     private javax.swing.JLabel jLabel6;
     private javax.swing.JLabel jLabel7;
+    private javax.swing.JLabel jLabel8;
     private javax.swing.JScrollPane jScrollPane1;
     private javax.swing.JTextArea jTextArea1;
     private javax.swing.JTextField peoplenumber;

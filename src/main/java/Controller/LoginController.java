@@ -73,10 +73,10 @@ public void handleLogin() {
                 String userName = response.split(",").length > 1 ? response.split(",")[1] : "이름없음";
                 // 세션 저장
                 Session.getInstance().setLoggedInUserId(id);
-Session.getInstance().setLoggedInUserName(userName);
-Session.getInstance().setSocket(socket);
-Session.getInstance().setIn(in);
-Session.getInstance().setOut(out);
+                Session.getInstance().setLoggedInUserName(userName);
+                Session.getInstance().setSocket(socket);
+                Session.getInstance().setIn(in);
+                Session.getInstance().setOut(out);
                 
                  // ✅ INIT 메시지 전송 (서버 스레드 블로킹 방지용)
     out.println("INIT");
@@ -168,9 +168,10 @@ private void openMembership() {
 
 private void logoutAndCloseSocket() {
     try {
-      PrintWriter out = Session.getInstance().getOut();
-BufferedReader in = Session.getInstance().getIn();
-Socket socket = Session.getInstance().getSocket();
+        PrintWriter out = Session.getInstance().getOut();
+        BufferedReader in = Session.getInstance().getIn();
+        Socket socket = Session.getInstance().getSocket();
+        String userId = Session.getInstance().getLoggedInUserId();
 
         if (out != null) {
             out.println("EXIT");
@@ -187,7 +188,7 @@ Socket socket = Session.getInstance().getSocket();
         }
 
         // 세션 정리
-Session.getInstance().clear();
+        Session.getInstance().clear();
         // 소켓 닫기
         if (socket != null && !socket.isClosed()) {
             socket.close();

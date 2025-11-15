@@ -50,7 +50,7 @@ public class ReservClassControllerTest {
         when(mockView.getStudentCount()).thenReturn(10);
         when(mockView.getBeforeButton()).thenReturn(new JButton());
         when(mockView.getClassComboBox()).thenReturn(new JComboBox<>());
-        when(mockView.getDayComboBox()).thenReturn(new JComboBox<>());
+        //when(mockView.getDayComboBox()).thenReturn(new JComboBox<>());
         when(mockView.getTimeComboBox()).thenReturn(new JComboBox<>());
 
         doNothing().when(mockView).resetReservationButtonListener();

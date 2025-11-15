@@ -1,19 +1,139 @@
 package View;
 
+import com.toedter.calendar.JDateChooser;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.util.Date;
 import javax.swing.*;
 
 public class ReservedRoomView extends JFrame {
     private Executive executive;
     private RoomSelect roomSelect;
     private boolean isUpdating = false;
+    //  날짜 선택기 변수 추가
+    private JDateChooser dateChooser;
+    private javax.swing.JLabel dateLabel;
+    
 
     // 생성자: Executive 또는 RoomSelect 중 하나만 전달받음
     public ReservedRoomView(Executive executive) {
         initComponents();
         this.executive = executive;
         this.roomSelect = null;
+        
+        try {
+    javax.swing.UIManager.setLookAndFeel("javax.swing.plaf.nimbus.NimbusLookAndFeel");
+} catch (Exception e) {
+    e.printStackTrace();
+}
+                initDatePicker();  // ✅ 날짜 선택기 초기화
+
+        
+    }
+      private void initDatePicker() {
+        // 날짜 선택기 생성
+        dateChooser = new JDateChooser();
+        dateChooser.setDateFormatString("yyyy-MM-dd (E)");  // 요일 포함
+        dateChooser.setPreferredSize(new java.awt.Dimension(200, 30));
+        
+        // 최소 날짜: 내일부터
+        LocalDate tomorrow = LocalDate.now().plusDays(1);
+        Date minDate = Date.from(tomorrow.atStartOfDay(ZoneId.systemDefault()).toInstant());
+        dateChooser.setMinSelectableDate(minDate);
+        dateChooser.setDate(minDate);  //  기본값: 내일로 설정
+        
+        // 최대 날짜: 1개월 후
+        LocalDate maxDate = LocalDate.now().plusMonths(1);
+        Date maxDateLimit = Date.from(maxDate.atStartOfDay(ZoneId.systemDefault()).toInstant());
+        dateChooser.setMaxSelectableDate(maxDateLimit);
+        
+        // 레이블 생성
+        dateLabel = new javax.swing.JLabel("예약 날짜:");
+        dateLabel.setFont(new java.awt.Font("맑은 고딕", 0, 12));
+        
+        // ✅ 기존 Day ComboBox 위치에 추가 (절대 좌표 기반)
+        dateLabel.setBounds(68, 235, 70, 25);  // "요일 선택" 위치
+        dateChooser.setBounds(150, 230, 200, 30);  // Day ComboBox 위치
+        
+        getContentPane().add(dateLabel);
+        getContentPane().add(dateChooser);
+        
+        
+    
+        
+        // 날짜 변경 시 수용인원 업데이트 (컴트 처리로 변경)
+        // dateChooser.addPropertyChangeListener("date", evt -> updateCapacityInfo());
+    }
+    
+
+
+    /**
+     * ✅ 선택한 날짜 가져오기
+     */
+    public LocalDate getSelectedDate() {
+        Date date = dateChooser.getDate();
+        if (date == null) {
+            return null;
+        }
+        return date.toInstant()
+                   .atZone(ZoneId.systemDefault())
+                   .toLocalDate();
+    }
+    
+    /**
+     * ✅ 날짜를 문자열로 반환 ("2025-11-12" 형식)
+     */
+    public String getSelectedDateString() {
+        LocalDate date = getSelectedDate();
+        return date != null ? date.toString() : null;
     }
 
+    /**
+     * ✅ 요일 문자열 반환 (호환성 유지용)
+     * 실제 날짜에서 요일을 계산
+     */
+    public String getSelectedDay() {
+        LocalDate date = getSelectedDate();
+        if (date == null) {
+            return "월";  // 기본값
+        }
+        
+        // 요일 한글 변환
+        String[] dayNames = {"월", "화", "수", "목", "금", "토", "일"};
+        int dayOfWeek = date.getDayOfWeek().getValue();  // 1(월)~7(일)
+        return dayNames[dayOfWeek - 1] + "요일";
+    }
+
+     // ✅ Controller에서 호출할 메소드
+    public void loadClassrooms() {
+        // ✅ 서버에서 강의실 목록 받아오기
+        try {
+            if (!Model.Session.getInstance().isConnected()) {
+                System.err.println("서버 연결이 없습니다.");
+                return;
+            }
+            
+            java.io.PrintWriter out = Model.Session.getInstance().getOut();
+            java.io.BufferedReader in = Model.Session.getInstance().getIn();
+            
+            out.println("GET_CLASSROOMS");
+            out.flush();
+            
+            String response = in.readLine();
+            if (response != null && response.startsWith("CLASSROOMS:")) {
+                String classroomList = response.substring("CLASSROOMS:".length());
+                String[] classrooms = classroomList.split(",");
+                Class.setModel(new DefaultComboBoxModel<>(classrooms));
+                System.out.println("강의실 로드 완료: " + classrooms.length + "개");
+            } else {
+                System.err.println("강의실 목록 조회 실패: " + response);
+            }
+            
+        } catch (java.io.IOException e) {
+            System.err.println("강의실 목록 조회 중 오류: " + e.getMessage());
+        }
+    }
+    
     public ReservedRoomView(RoomSelect roomSelect) {
         initComponents();
         this.roomSelect = roomSelect;

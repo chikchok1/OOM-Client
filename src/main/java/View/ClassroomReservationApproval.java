@@ -20,6 +20,8 @@ public class ClassroomReservationApproval extends javax.swing.JFrame {
         initComponents();
         this.executive = executive;
 
+            jTable2.setDefaultEditor(Object.class, null);
+
         // "이전" 버튼 처리
         getBackButton().addActionListener(e -> {
             this.dispose();
@@ -160,12 +162,7 @@ public class ClassroomReservationApproval extends javax.swing.JFrame {
     }// </editor-fold>//GEN-END:initComponents
 
     private void jButton3ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton3ActionPerformed
-        /*TODO add your handling code here:
-        this.dispose(); // 현재 창 닫기
-        View.Executive exec = new View.Executive(); // Executive 새로 열기
-         new Controller.ExecutiveController(exec);   // 반드시 컨트롤러도 연결해야 버튼들 작동함
-        exec.setVisible(true);                      // 화면 띄우기
-        */
+   
     }//GEN-LAST:event_jButton3ActionPerformed
 
     private void jTextField1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jTextField1ActionPerformed
