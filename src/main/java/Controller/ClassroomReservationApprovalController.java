@@ -50,16 +50,32 @@ public class ClassroomReservationApprovalController {
                     break;
                 }
 
-                // 서버가 보낸 형식: id,time,day,room,name,studentCount
+                // 서버가 보낸 형식: id,time,date,day,room,name,studentCount
                 String[] parts = line.split(",");
-                if (parts.length == 6) {
+                if (parts.length == 7) {
                     model.addRow(parts);
+                } else if (parts.length == 6) {
+                    // 구 버전 호환성: 날짜가 없는 경우
+                    String[] partsWithDate = new String[7];
+                    partsWithDate[0] = parts[0]; // id
+                    partsWithDate[1] = parts[1]; // time
+                    partsWithDate[2] = "";       // date (비어있음)
+                    partsWithDate[3] = parts[2]; // day
+                    partsWithDate[4] = parts[3]; // room
+                    partsWithDate[5] = parts[4]; // name
+                    partsWithDate[6] = parts[5]; // studentCount
+                    model.addRow(partsWithDate);
                 } else if (parts.length == 5) {
-                    // 구 버전 호환성: 학생 수가 없으면 "1" 추가
-                    String[] partsWithCount = new String[6];
-                    System.arraycopy(parts, 0, partsWithCount, 0, 5);
-                    partsWithCount[5] = "1";
-                    model.addRow(partsWithCount);
+                    // 구 버전 호환성: 날짜와 학생 수가 없는 경우
+                    String[] partsWithDateAndCount = new String[7];
+                    partsWithDateAndCount[0] = parts[0]; // id
+                    partsWithDateAndCount[1] = parts[1]; // time
+                    partsWithDateAndCount[2] = "";       // date
+                    partsWithDateAndCount[3] = parts[2]; // day
+                    partsWithDateAndCount[4] = parts[3]; // room
+                    partsWithDateAndCount[5] = parts[4]; // name
+                    partsWithDateAndCount[6] = "1";      // studentCount
+                    model.addRow(partsWithDateAndCount);
                 }
             }
         } catch (IOException e) {
@@ -91,9 +107,10 @@ public class ClassroomReservationApprovalController {
             DefaultTableModel model = (DefaultTableModel) view.getTable().getModel();
             String id = ((String) model.getValueAt(selectedRow, 0)).trim();
             String time = ((String) model.getValueAt(selectedRow, 1)).trim();
-            String day = ((String) model.getValueAt(selectedRow, 2)).trim();
-            String room = ((String) model.getValueAt(selectedRow, 3)).trim();
-            String name = ((String) model.getValueAt(selectedRow, 4)).trim();
+            String date = ((String) model.getValueAt(selectedRow, 2)).trim();
+            String day = ((String) model.getValueAt(selectedRow, 3)).trim();
+            String room = ((String) model.getValueAt(selectedRow, 4)).trim();
+            String name = ((String) model.getValueAt(selectedRow, 5)).trim();
 
             //  연결 상태 확인
             if (!Session.getInstance().isConnected()) {
@@ -104,7 +121,7 @@ public class ClassroomReservationApprovalController {
             PrintWriter out = Session.getInstance().getOut();
             BufferedReader in = Session.getInstance().getIn();
 
-            out.println(String.format("APPROVE_RESERVATION,%s,%s,%s,%s,%s", id, time, day, room, name));
+            out.println(String.format("APPROVE_RESERVATION,%s,%s,%s,%s,%s,%s", id, time, date, day, room, name));
             out.flush();
 
             try {
@@ -138,9 +155,10 @@ public class ClassroomReservationApprovalController {
             DefaultTableModel model = (DefaultTableModel) view.getTable().getModel();
             String id = ((String) model.getValueAt(selectedRow, 0)).trim();
             String time = ((String) model.getValueAt(selectedRow, 1)).trim();
-            String day = ((String) model.getValueAt(selectedRow, 2)).trim();
-            String room = ((String) model.getValueAt(selectedRow, 3)).trim();
-            String name = ((String) model.getValueAt(selectedRow, 4)).trim();
+            String date = ((String) model.getValueAt(selectedRow, 2)).trim();
+            String day = ((String) model.getValueAt(selectedRow, 3)).trim();
+            String room = ((String) model.getValueAt(selectedRow, 4)).trim();
+            String name = ((String) model.getValueAt(selectedRow, 5)).trim();
 
             //  연결 상태 확인
             if (!Session.getInstance().isConnected()) {
@@ -151,7 +169,7 @@ public class ClassroomReservationApprovalController {
             PrintWriter out = Session.getInstance().getOut();
             BufferedReader in = Session.getInstance().getIn();
 
-            out.println(String.format("REJECT_RESERVATION,%s,%s,%s,%s,%s", id, time, day, room, name));
+            out.println(String.format("REJECT_RESERVATION,%s,%s,%s,%s,%s,%s", id, time, date, day, room, name));
             out.flush();
 
             try {

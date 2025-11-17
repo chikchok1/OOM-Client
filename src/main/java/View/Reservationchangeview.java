@@ -416,13 +416,13 @@ public class Reservationchangeview extends javax.swing.JFrame {
 
         jTable1.setModel(new javax.swing.table.DefaultTableModel(
             new Object [][] {
-                {null, null, null, null, null, null, null},
-                {null, null, null, null, null, null, null},
-                {null, null, null, null, null, null, null},
-                {null, null, null, null, null, null, null}
+                {null, null, null, null, null, null, null, null},
+                {null, null, null, null, null, null, null, null},
+                {null, null, null, null, null, null, null, null},
+                {null, null, null, null, null, null, null, null}
             },
             new String [] {
-                "강의실", "날짜", "요일", "시간", "목적", "인원", "사용자ID"
+                "강의실", "날짜", "요일", "시간", "목적", "인원", "상태", "사용자ID"
             }
         ));
         jScrollPane2.setViewportView(jTable1);

@@ -29,6 +29,7 @@ View\Reservationchangeview$5.class
 View\ReservClassView$8.class
 View\RoomSelect$1.class
 View\ChangePasswordView.class
+Controller\ReservationchangeviewController$CancelReservationListener.class
 Controller\ReservClassController.class
 View\ReservLabView$8.class
 View\ClassroomReservationApproval$3.class

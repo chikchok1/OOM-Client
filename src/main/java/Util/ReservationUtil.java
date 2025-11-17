@@ -131,6 +131,29 @@ public class ReservationUtil {
     }
     
     /**
+     * 특정 날짜/시간의 예약 상태 확인
+     * @param statusMap 상태 맵 (방 이름 -> 시간_상태 Map)
+     * @param room 방 이름
+     * @param date 날짜
+     * @param time 시간 (교시)
+     * @return 예약 상태 (null, "예약됨", "대기중")
+     */
+    public static String getReservationStatus(Map<String, Map<String, String>> statusMap,
+                                             String room, LocalDate date, String time) {
+        room = normalizeRoomName(room);
+        time = time.length() >= 3 ? time.substring(0, 3) : time;
+        
+        String day = getDayName(date);
+        String key = date.toString() + "_" + day + "_" + time;
+        
+        Map<String, String> timeStatus = statusMap.get(room);
+        if (timeStatus != null) {
+            return timeStatus.get(key);
+        }
+        return null;
+    }
+    
+    /**
      * 서버로부터 방의 사용 가능 여부 확인 (동기 방식)
      * @param roomName 방 이름
      * @return 사용 가능 여부 (true: 가능, false: 불가능)
@@ -224,13 +247,15 @@ public class ReservationUtil {
     }
     
     /**
-     * 서버로부터 주간 예약 데이터 로드
+     * 서버로부터 주간 예약 데이터 로드 (상태 정보 포함)
      * @param reservedMap 예약 맵 (방 이름 -> 예약된 시간 Set)
+     * @param statusMap 상태 맵 (방 이름 -> 시간_상태 Map)
      * @param roomName 방 이름
      * @param weekStart 주 시작일
      * @param weekEnd 주 종료일
      */
     public static void loadWeeklyReservationData(Map<String, Set<String>> reservedMap,
+                                                Map<String, Map<String, String>> statusMap,
                                                 String roomName, 
                                                 LocalDate weekStart, 
                                                 LocalDate weekEnd) {
@@ -251,6 +276,7 @@ public class ReservationUtil {
             String normalizedRoom = normalizeRoomName(roomName);
             // Thread-safe Set으로 초기화
             reservedMap.put(normalizedRoom, ConcurrentHashMap.newKeySet());
+            statusMap.put(normalizedRoom, new ConcurrentHashMap<>());
 
             System.out.printf("[loadWeeklyReservationData] %s %s ~ %s 예약 정보 요청%n", 
                 normalizedRoom, weekStart.toString(), weekEnd.toString());
@@ -271,7 +297,7 @@ public class ReservationUtil {
                 // 9개 필드: name,room,date,day,time,purpose,role,status,studentCount
                 if (parts.length >= 9) {
                     String status = parts[7].trim();
-                    if (status.equals("예약됨") || status.equals("대기")) {
+                    if (status.equals("예약됨") || status.equals("대기중")) {
                         String room = normalizeRoomName(parts[1].trim());
                         String dateString = parts[2].trim();  // 날짜
                         String day = parts[3].trim().replace("요일", "");  // 요일
@@ -280,9 +306,16 @@ public class ReservationUtil {
                             time = time.substring(0, 3);
                         }
 
+                        String key = dateString + "_" + day + "_" + time;
+                        
                         // Thread-safe: ConcurrentHashMap.newKeySet() 사용
                         reservedMap.computeIfAbsent(room, k -> ConcurrentHashMap.newKeySet())
-                            .add(dateString + "_" + day + "_" + time);
+                            .add(key);
+                        
+                        // 상태 정보 저장
+                        statusMap.computeIfAbsent(room, k -> new ConcurrentHashMap<>())
+                            .put(key, status);
+                        
                         readCount++;
                     }
                 }
@@ -294,6 +327,21 @@ public class ReservationUtil {
             System.err.println("[loadWeeklyReservationData] 오류: " + e.getMessage());
             e.printStackTrace();
         }
+    }
+    
+    /**
+     * 서버로부터 주간 예약 데이터 로드 (상태 정보 없는 버전 - 하위 호환성)
+     * @param reservedMap 예약 맵 (방 이름 -> 예약된 시간 Set)
+     * @param roomName 방 이름
+     * @param weekStart 주 시작일
+     * @param weekEnd 주 종료일
+     */
+    public static void loadWeeklyReservationData(Map<String, Set<String>> reservedMap,
+                                                String roomName, 
+                                                LocalDate weekStart, 
+                                                LocalDate weekEnd) {
+        Map<String, Map<String, String>> dummyStatusMap = new ConcurrentHashMap<>();
+        loadWeeklyReservationData(reservedMap, dummyStatusMap, roomName, weekStart, weekEnd);
     }
     
     /**
@@ -379,14 +427,16 @@ public class ReservationUtil {
     }
     
     /**
-     * 날짜가 포함된 캘린더 테이블 생성
+     * 날짜가 포함된 캘린더 테이블 생성 (상태 정보 포함)
      * @param reservedMap 예약 맵
+     * @param statusMap 상태 맵
      * @param room 방 이름
      * @param roomAvailable 방 사용 가능 여부
      * @param weekStart 주 시작일
      * @return 생성된 JTable
      */
     public static JTable buildCalendarTableWithDates(Map<String, Set<String>> reservedMap,
+                                                    Map<String, Map<String, String>> statusMap,
                                                     String room, 
                                                     boolean roomAvailable, 
                                                     LocalDate weekStart) {
@@ -445,10 +495,20 @@ public class ReservationUtil {
                     } else {
                         LocalDate date = weekDates[column - 1];
                         String time = times[row];
-                        if (isReservedOnDate(reservedMap, room, date, time)) {
-                            cell.setBackground(Color.RED);
+                        
+                        // 상태에 따른 색상 구분
+                        String status = getReservationStatus(statusMap, room, date, time);
+                        
+                        if ("예약됨".equals(status)) {
+                            // 확정된 예약 = 초록색
+                            cell.setBackground(new Color(76, 175, 80));  // Material Green
+                            cell.setText("");
+                        } else if ("대기중".equals(status)) {
+                            // 대기중인 예약 = 노란색
+                            cell.setBackground(new Color(255, 235, 59));  // Material Yellow
                             cell.setText("");
                         } else {
+                            // 비어있음 = 흰색
                             cell.setBackground(Color.WHITE);
                             cell.setText("");
                         }
@@ -459,5 +519,21 @@ public class ReservationUtil {
         });
 
         return table;
+    }
+    
+    /**
+     * 날짜가 포함된 캘린더 테이블 생성 (상태 정보 없는 버전 - 하위 호환성)
+     * @param reservedMap 예약 맵
+     * @param room 방 이름
+     * @param roomAvailable 방 사용 가능 여부
+     * @param weekStart 주 시작일
+     * @return 생성된 JTable
+     */
+    public static JTable buildCalendarTableWithDates(Map<String, Set<String>> reservedMap,
+                                                    String room, 
+                                                    boolean roomAvailable, 
+                                                    LocalDate weekStart) {
+        Map<String, Map<String, String>> dummyStatusMap = new ConcurrentHashMap<>();
+        return buildCalendarTableWithDates(reservedMap, dummyStatusMap, room, roomAvailable, weekStart);
     }
 }

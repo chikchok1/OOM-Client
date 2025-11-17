@@ -16,6 +16,7 @@ import javax.swing.*;
 public abstract class AbstractReservationController {
 
     protected final Map<String, Set<String>> reservedMap = new ConcurrentHashMap<>();
+    protected final Map<String, Map<String, String>> statusMap = new ConcurrentHashMap<>();
     protected final Object serverLock = new Object();
 
     /**
@@ -77,7 +78,7 @@ public abstract class AbstractReservationController {
                 }
                 java.time.LocalDate weekStart = ReservationUtil.getWeekStart(selectedDate);
                 java.time.LocalDate weekEnd = weekStart.plusDays(6);
-                ReservationUtil.loadWeeklyReservationData(reservedMap, selectedRoom, weekStart, weekEnd);
+                ReservationUtil.loadWeeklyReservationData(reservedMap, statusMap, selectedRoom, weekStart, weekEnd);
 
                 String dateString = selectedDate.toString();
                 String day = getSelectedDay();
@@ -88,7 +89,7 @@ public abstract class AbstractReservationController {
                 final java.time.LocalDate finalWeekStart = weekStart;
                 SwingUtilities.invokeLater(() -> {
                     JTable updatedTable = ReservationUtil.buildCalendarTableWithDates(
-                        reservedMap, selectedRoom, isAvailable, finalWeekStart);
+                        reservedMap, statusMap, selectedRoom, isAvailable, finalWeekStart);
                     updateCalendarTable(updatedTable);
                     updateCapacityPanelWithData(selectedRoom, day, time, finalReservedCapacity);
                 });
@@ -112,7 +113,7 @@ public abstract class AbstractReservationController {
                     java.time.LocalDate weekStart = ReservationUtil.getWeekStart(selectedDate);
                     java.time.LocalDate weekEnd = weekStart.plusDays(6);
 
-                    ReservationUtil.loadWeeklyReservationData(reservedMap, roomName, weekStart, weekEnd);
+                    ReservationUtil.loadWeeklyReservationData(reservedMap, statusMap, roomName, weekStart, weekEnd);
 
                     String dateString = selectedDate.toString();
                     String day = getSelectedDay();
@@ -123,7 +124,7 @@ public abstract class AbstractReservationController {
                     final java.time.LocalDate finalWeekStart = weekStart;
                     SwingUtilities.invokeLater(() -> {
                         JTable updatedTable = ReservationUtil.buildCalendarTableWithDates(
-                            reservedMap, roomName, isAvailable, finalWeekStart);
+                            reservedMap, statusMap, roomName, isAvailable, finalWeekStart);
                         updateCalendarTable(updatedTable);
                         updateCapacityPanelWithData(roomName, day, time, finalReservedCapacity);
                     });

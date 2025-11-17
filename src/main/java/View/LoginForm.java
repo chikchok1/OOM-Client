@@ -17,7 +17,13 @@ public class LoginForm extends javax.swing.JFrame {
      */
     public LoginForm() {
         initComponents();
+            getRootPane().setDefaultButton(LoginBtn);  // ← 엔터키로 로그인 실행
+
     }
+public void enableEnterKeyForLogin(java.awt.event.ActionListener listener) {
+    ID.addActionListener(listener);
+    PassWord.addActionListener(listener);
+}
 
     public void addLoginListener(java.awt.event.ActionListener listener) {
     LoginBtn.addActionListener(listener);

@@ -25,6 +25,8 @@ public class ReservationchangeviewController extends AbstractReservationControll
         // 이벤트 리스너 등록
         this.view.setChangeButtonActionListener(new ChangeReservationListener());
         this.view.setBackButtonActionListener(e -> handleBack());
+this.view.setCancelButtonActionListener(new CancelReservationListener());
+
 
         // 테이블 행 클릭 시 정보 채우기
         this.view.getReservationTable().getSelectionModel().addListSelectionListener(e -> {
@@ -39,7 +41,7 @@ public class ReservationchangeviewController extends AbstractReservationControll
                     System.out.printf("[테이블 클릭] 선택된 예약: [%s] %s (%s, %s, %s, %s, 인원:%d)%n",
                             info.fileType, info.name, info.userId, info.room, info.date, info.time, info.studentCount);
 
-                    // ✅ 팝업 대신 콘솔 로그만 출력 (사용자 경험 개선)
+                    //  팝업 대신 콘솔 로그만 출력 (사용자 경험 개선)
                 }
             }
         });
@@ -112,7 +114,7 @@ this.view.getLabRoomTypeComboBox().addActionListener(e -> {
                 boolean isAvailable = ReservationUtil.checkRoomAvailabilitySync(selectedRoom);
                 java.time.LocalDate weekStart = ReservationUtil.getWeekStart(selectedDate);
                 java.time.LocalDate weekEnd = weekStart.plusDays(6);
-                ReservationUtil.loadWeeklyReservationData(reservedMap, selectedRoom, weekStart, weekEnd);
+                ReservationUtil.loadWeeklyReservationData(reservedMap, statusMap, selectedRoom, weekStart, weekEnd);
 
                 String dateString = selectedDate.toString();
                 String day = view.getSelectedDay();
@@ -125,7 +127,7 @@ this.view.getLabRoomTypeComboBox().addActionListener(e -> {
                 SwingUtilities.invokeLater(() -> {
                     // ✅ ReservationUtil 사용
                     JTable updatedTable = ReservationUtil.buildCalendarTableWithDates(
-                            reservedMap, selectedRoom, isAvailable, finalWeekStart);
+                            reservedMap, statusMap, selectedRoom, isAvailable, finalWeekStart);
                     view.updateCalendarTable(updatedTable);
                     updateCapacityPanelWithData(selectedRoom, day, time, finalReservedCapacity);
                 });
@@ -167,15 +169,23 @@ this.view.getLabRoomTypeComboBox().addActionListener(e -> {
             return;
         }
 
-        // 승인된 예약 요청
-        out.println("VIEW_APPROVED_RESERVATIONS," + sessionUserId);
+        // 승인된 예약 요청 (✅ userId 제거 - 서버가 currentUserId 사용)
+        out.println("VIEW_APPROVED_RESERVATIONS");
         out.flush();
-        System.out.println("[loadApprovedReservations] 요청 전송: VIEW_APPROVED_RESERVATIONS," + sessionUserId);
+        System.out.println("[loadApprovedReservations] 요청 전송: VIEW_APPROVED_RESERVATIONS");
 
         String line;
         int count = 0;
 
         while ((line = in.readLine()) != null) {
+            // ✅ 다른 명령의 성공 응답 건너뛰기
+            if (line.equals("CHANGE_SUCCESS") || 
+                line.equals("CANCEL_SUCCESS") || 
+                line.equals("VIEW_APPROVED_RESERVATIONS_SUCCESS")) {
+                System.out.println("[loadApprovedReservations] 이전 응답 건너뜀: " + line);
+                continue;
+            }
+            
             if (line.equals("END_OF_APPROVED_RESERVATIONS")) {
                 break;
             }
@@ -195,9 +205,9 @@ this.view.getLabRoomTypeComboBox().addActionListener(e -> {
                     int studentCount = Integer.parseInt(parts[9].trim());
                     String reservedUserId = parts[10].trim(); // ← 서버에서 주는 진짜 userId
 
-                    // 테이블 표시
+                    // 테이블 표시 (상태 추가)
                     model.addRow(new Object[]{
-                        room, date, day, time, purpose, studentCount + "명", reservedUserId
+                        room, date, day, time, purpose, studentCount + "명", status, reservedUserId
                     });
 
                     // 원본 저장
@@ -220,7 +230,7 @@ this.view.getLabRoomTypeComboBox().addActionListener(e -> {
 
         if (count == 0) {
             SwingUtilities.invokeLater(() -> {
-                view.showMessage("승인된 예약이 없습니다.\n\n캘린더를 통해 새로운 예약을 진행해주세요.");
+                view.showMessage("예약 내역이 없습니다.\n\n캘린더를 통해 새로운 예약을 진행해주세요.");
             });
         }
 
@@ -431,9 +441,23 @@ this.view.getLabRoomTypeComboBox().addActionListener(e -> {
                                 // 목록 새로고침
                                 loadApprovedReservations();
                             });
+                        } else if (response != null && response.startsWith("CHANGE_FAILED_CONFLICT:")) {
+                            // 중복 예약 시간 추출
+                            String conflictTime = response.substring("CHANGE_FAILED_CONFLICT:".length());
+                            SwingUtilities.invokeLater(() ->
+                                    view.showMessage("예약 변경 실패!\n\n" + conflictTime + "는 이미 다른 예약이 있습니다.\n다른 시간대를 선택해주세요.")
+                            );
+                        } else if ("CHANGE_FAILED_NOT_FOUND".equals(response)) {
+                            SwingUtilities.invokeLater(() ->
+                                    view.showMessage("예약 변경 실패!\n\n기존 예약을 찾을 수 없습니다.\n이미 취소되었거나 변경되었을 수 있습니다.")
+                            );
+                        } else if ("CHANGE_FAILED_INVALID_FORMAT".equals(response)) {
+                            SwingUtilities.invokeLater(() ->
+                                    view.showMessage("예약 변경 실패!\n\n잘못된 예약 형식입니다.")
+                            );
                         } else {
-                            SwingUtilities.invokeLater(()
-                                    -> view.showMessage("예약 변경 실패: " + response)
+                            SwingUtilities.invokeLater(() ->
+                                    view.showMessage("예약 변경 실패: " + response)
                             );
                         }
 
@@ -528,6 +552,154 @@ this.view.getLabRoomTypeComboBox().addActionListener(e -> {
         }
     }
     
+    /**
+ * 예약 취소 리스너
+ */
+/**
+ * 예약 취소 리스너
+ */
+class CancelReservationListener implements ActionListener {
+    @Override
+    public void actionPerformed(ActionEvent e) {
+        System.out.println("[취소버튼] 클릭됨");
+        
+        // 1. 테이블에서 선택된 예약 확인
+        int selectedRow = view.getReservationTable().getSelectedRow();
+        System.out.println("[취소버튼] 선택된 행: " + selectedRow);
+        
+        if (selectedRow == -1) {
+            view.showMessage("취소할 예약을 선택해주세요.");
+            System.out.println("[취소버튼] 예약 미선택으로 중단");
+            return;
+        }
+
+        if (selectedRow >= originalReservations.size()) {
+            view.showMessage("예약 정보를 찾을 수 없습니다.");
+            return;
+        }
+
+        ReservationInfo reservation = originalReservations.get(selectedRow);
+        
+        // 2. 확인 메시지
+        int confirm = JOptionPane.showConfirmDialog(
+            view,
+            String.format(
+                "다음 예약을 취소하시겠습니까?\n\n" +
+                "강의실: %s\n" +
+                "날짜: %s (%s)\n" +
+                "시간: %s\n" +
+                "인원: %d명\n\n" +
+                "⚠️ 취소 후 복구할 수 없습니다.",
+                reservation.room, reservation.date, reservation.day,
+                reservation.time, reservation.studentCount
+            ),
+            "예약 취소 확인",
+            JOptionPane.YES_NO_OPTION,
+            JOptionPane.WARNING_MESSAGE
+        );
+
+        if (confirm != JOptionPane.YES_OPTION) {
+            System.out.println("[취소버튼] 사용자가 취소함");
+            return;
+        }
+        
+        System.out.println("[취소버튼] 사용자 확인 완료, 서버 요청 시작");
+
+        // 3. 서버에 취소 요청
+        new Thread(() -> {
+            try {
+                PrintWriter out = Session.getInstance().getOut();
+                BufferedReader in = Session.getInstance().getIn();
+                
+                if (out == null || in == null) {
+                    SwingUtilities.invokeLater(() ->
+                        view.showMessage("서버 연결이 끊어졌습니다.")
+                    );
+                    return;
+                }
+
+                // CANCEL_RESERVATION,userId,day,date,time,room,userName
+                String command = String.format("CANCEL_RESERVATION,%s,%s,%s,%s,%s,%s",
+                    reservation.userId,
+                    reservation.day,
+                    reservation.date,
+                    reservation.time,
+                    reservation.room,
+                    reservation.name
+                );
+                
+                out.println(command);
+                out.flush();
+                System.out.println("[취소버튼] 서버 요청: " + command);
+
+                String response = in.readLine();
+                System.out.println("[취소버튼] 서버 응답: " + response);
+
+                if ("CANCEL_SUCCESS".equals(response)) {
+                    SwingUtilities.invokeLater(() -> {
+                        view.showMessage(String.format(
+                            "예약이 취소되었습니다.\n\n" +
+                            "강의실: %s\n" +
+                            "날짜: %s (%s)\n" +
+                            "시간: %s",
+                            reservation.room, reservation.date,
+                            reservation.day, reservation.time
+                        ));
+                    });
+                    
+                    // ✅ 새로운 스레드에서 목록 새로고침
+                    new Thread(() -> {
+                        synchronized (serverLock) {
+                            loadApprovedReservations();
+                            
+                            // ✅ 캘린더도 새로고침
+                            String selectedRoom = view.getSelectedClassRoom();
+                            java.time.LocalDate selectedDate = view.getSelectedDate();
+                            if (selectedDate == null) {
+                                selectedDate = java.time.LocalDate.now().plusDays(1);
+                            }
+                            
+                            boolean isAvailable = ReservationUtil.checkRoomAvailabilitySync(selectedRoom);
+                            java.time.LocalDate weekStart = ReservationUtil.getWeekStart(selectedDate);
+                            java.time.LocalDate weekEnd = weekStart.plusDays(6);
+                            ReservationUtil.loadWeeklyReservationData(reservedMap, statusMap, selectedRoom, weekStart, weekEnd);
+
+                            String dateString = selectedDate.toString();
+                            String day = view.getSelectedDay();
+                            String time = view.getSelectedTime();
+                            int reservedCapacity = ReservationUtil.getApprovedReservedCountForDate(selectedRoom, dateString, time);
+
+                            final int finalReservedCapacity = reservedCapacity;
+                            final java.time.LocalDate finalWeekStart = weekStart;
+                            SwingUtilities.invokeLater(() -> {
+                                JTable updatedTable = ReservationUtil.buildCalendarTableWithDates(
+                                    reservedMap, statusMap, selectedRoom, isAvailable, finalWeekStart);
+                                view.updateCalendarTable(updatedTable);
+                                updateCapacityPanelWithData(selectedRoom, day, time, finalReservedCapacity);
+                            });
+                        }
+                    }).start();
+                    
+                } else if ("CANCEL_FAILED_NOT_FOUND".equals(response)) {
+                    SwingUtilities.invokeLater(() ->
+                        view.showMessage("해당 예약을 찾을 수 없습니다.\n이미 취소되었을 수 있습니다.")
+                    );
+                } else {
+                    SwingUtilities.invokeLater(() ->
+                        view.showMessage("예약 취소 실패: " + response)
+                    );
+                }
+
+            } catch (IOException ex) {
+                ex.printStackTrace();
+                SwingUtilities.invokeLater(() ->
+                    view.showMessage("오류 발생: " + ex.getMessage())
+                );
+            }
+        }).start();
+    }
+}
+
     @Override
     protected String getRoomTypeName() {
         return "강의실/실습실";
