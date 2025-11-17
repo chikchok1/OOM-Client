@@ -28,15 +28,51 @@ public class ReservClassView extends javax.swing.JFrame {
      */
     public ReservClassView() {
         try {
-    javax.swing.UIManager.setLookAndFeel("javax.swing.plaf.nimbus.NimbusLookAndFeel");
-} catch (Exception e) {
-    e.printStackTrace();
-}
+            javax.swing.UIManager.setLookAndFeel("javax.swing.plaf.nimbus.NimbusLookAndFeel");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
 
         initComponents();
-        initDatePicker();  // ✅ 날짜 선택기 초기화
-        
-        
+        initDatePicker();  //  날짜 선택기 초기화
+        initPurposeComboBox();  //  사용 목적 초기화
+        initClassroomComboBox();  //  강의실 콤보박스 초기화
+
+    }
+
+    private void initPurposeComboBox() {
+        // ComboBox를 편집 가능하게 설정
+        Purpose.setEditable(true);
+
+        // 기본 선택지 설정
+        Purpose.setModel(new DefaultComboBoxModel<>(new String[]{
+            "수업",
+            "스터디",
+            "프로젝트",
+            "세미나",
+            "동아리 활동",
+            "기타"
+        }));
+
+        System.out.println("[ReservClassView] 사용 목적 ComboBox 초기화 완료 (편집 가능)");
+    }
+
+    /**
+     * 강의실 ComboBox 초기화 - 편집 가능하게 설정
+     */
+    private void initClassroomComboBox() {
+        // ComboBox를 편집 가능하게 설정
+        Class.setEditable(true);
+
+        // 기본 강의실 4개 설정 (Classrooms.txt에서 로드될 때까지 임시)
+        Class.setModel(new DefaultComboBoxModel<>(new String[]{
+            "908호",
+            "912호",
+            "913호",
+            "914호"
+        }));
+
+        System.out.println("[ReservClassView] 강의실 ComboBox 초기화 완료 (편집 가능)");
     }
 
     /**
@@ -47,35 +83,32 @@ public class ReservClassView extends javax.swing.JFrame {
         dateChooser = new JDateChooser();
         dateChooser.setDateFormatString("yyyy-MM-dd (E)");  // 요일 포함
         dateChooser.setPreferredSize(new java.awt.Dimension(200, 30));
-        
+
         // 최소 날짜: 내일부터
         LocalDate tomorrow = LocalDate.now().plusDays(1);
         Date minDate = Date.from(tomorrow.atStartOfDay(ZoneId.systemDefault()).toInstant());
         dateChooser.setMinSelectableDate(minDate);
         dateChooser.setDate(minDate);  //  기본값: 내일로 설정
-        
+
         // 최대 날짜: 1개월 후
         LocalDate maxDate = LocalDate.now().plusMonths(1);
         Date maxDateLimit = Date.from(maxDate.atStartOfDay(ZoneId.systemDefault()).toInstant());
         dateChooser.setMaxSelectableDate(maxDateLimit);
-        
+
         // 레이블 생성
         dateLabel = new javax.swing.JLabel("예약 날짜:");
         dateLabel.setFont(new java.awt.Font("맑은 고딕", 0, 12));
-        
+
         //  기존 Day ComboBox 위치에 추가 (절대 좌표 기반)
         dateLabel.setBounds(68, 270, 70, 25);  // "요일 선택" 위치
         dateChooser.setBounds(150, 265, 200, 30);  // Day ComboBox 위치
-        
+
         getContentPane().add(dateLabel);
         getContentPane().add(dateChooser);
-        
-        
+
         // 날짜 변경 시 수용인원 업데이트 (컴트 처리로 변경)
         // dateChooser.addPropertyChangeListener("date", evt -> updateCapacityInfo());
     }
-    
-
 
     /**
      * ✅ 선택한 날짜 가져오기
@@ -86,10 +119,10 @@ public class ReservClassView extends javax.swing.JFrame {
             return null;
         }
         return date.toInstant()
-                   .atZone(ZoneId.systemDefault())
-                   .toLocalDate();
+                .atZone(ZoneId.systemDefault())
+                .toLocalDate();
     }
-    
+
     /**
      * ✅ 날짜를 문자열로 반환 ("2025-11-12" 형식)
      */
@@ -99,15 +132,14 @@ public class ReservClassView extends javax.swing.JFrame {
     }
 
     /**
-     * ✅ 요일 문자열 반환 (호환성 유지용)
-     * 실제 날짜에서 요일을 계산
+     * ✅ 요일 문자열 반환 (호환성 유지용) 실제 날짜에서 요일을 계산
      */
     public String getSelectedDay() {
         LocalDate date = getSelectedDate();
         if (date == null) {
             return "월";  // 기본값
         }
-        
+
         // 요일 한글 변환
         String[] dayNames = {"월", "화", "수", "목", "금", "토", "일"};
         int dayOfWeek = date.getDayOfWeek().getValue();  // 1(월)~7(일)
@@ -115,21 +147,28 @@ public class ReservClassView extends javax.swing.JFrame {
     }
 
     /**
-     * 강의실 목록을 ComboBox에 설정
-     * Controller에서 데이터를 전달받아 표시만 함
+     * 강의실 목록을 ComboBox에 설정 Controller에서 데이터를 전달받아 표시만 함
+     * 편집 가능 설정 유지
+     *
      * @param classrooms 강의실 이름 목록
      */
     public void setClassrooms(java.util.List<String> classrooms) {
         if (classrooms == null || classrooms.isEmpty()) {
             System.err.println("[ReservClassView] 강의실 목록이 비어있습니다.");
-            // 빈 모델 설정 (사용자에게 오류 표시)
-            Class.setModel(new DefaultComboBoxModel<>(new String[0]));
+            // 기본 강의실 4개 유지
+            Class.setModel(new DefaultComboBoxModel<>(new String[]{
+                "908호",
+                "912호",
+                "913호",
+                "914호"
+            }));
         } else {
             Class.setModel(new DefaultComboBoxModel<>(classrooms.toArray(new String[0])));
             System.out.println("[ReservClassView] 강의실 " + classrooms.size() + "개 표시 완료");
         }
+        // 편집 가능 설정 유지
+        Class.setEditable(true);
     }
-
 
     public int getStudentCount() {
         try {
@@ -160,36 +199,40 @@ public class ReservClassView extends javax.swing.JFrame {
         Reservation.addActionListener(listener); // 버튼에 바로 리스너 붙이기
     }
 
-  public String getSelectedClassRoom() {
-    String room = Class.getSelectedItem().toString();
-    return normalizeRoomName(room);
-}
-
+    public String getSelectedClassRoom() {
+        Object selected = Class.getSelectedItem();
+        if (selected == null) {
+            return null;
+        }
+        String room = selected.toString().trim();
+        return normalizeRoomName(room);
+    }
 
     public String getSelectedTime() {
         return Time.getSelectedItem().toString();
     }
 
     private String normalizeRoomName(String room) {
-    if (room == null) return null;
+        if (room == null) {
+            return null;
+        }
 
-    room = room.trim();
+        room = room.trim();
 
-    // 908호:CLASS → 908호
-    if (room.contains(":")) {
-        room = room.substring(0, room.indexOf(":"));
+        // 908호:CLASS → 908호
+        if (room.contains(":")) {
+            room = room.substring(0, room.indexOf(":"));
+        }
+
+        // 혹시 모를 예외 처리
+        if (!room.endsWith("호")) {
+            room = room + "호";
+        }
+
+        return room;
     }
 
-    // 혹시 모를 예외 처리
-    if (!room.endsWith("호")) {
-        room = room + "호";
-    }
-
-    return room;
-}
-
-    
-    // ✅ 종료 시간 가져오기
+    //  종료 시간 가져오기
     public String getSelectedEndTime() {
         return EndTime.getSelectedItem().toString();
     }
@@ -200,7 +243,19 @@ public class ReservClassView extends javax.swing.JFrame {
     }
 
     public String getPurpose() {
-        return Purpose.getSelectedItem().toString().trim();
+        Object selected = Purpose.getSelectedItem();
+        if (selected == null) {
+            return "";
+        }
+
+        String purpose = selected.toString().trim();
+
+        // "기타"를 선택했는데 추가 입력이 없으면 경고
+        if (purpose.equals("기타") || purpose.isEmpty()) {
+            return "";  // Controller에서 검증하도록
+        }
+
+        return purpose;
     }
 
     public void showMessage(String message) {
@@ -239,10 +294,10 @@ public class ReservClassView extends javax.swing.JFrame {
     public javax.swing.JComboBox<String> getTimeComboBox() {
         return Time;
     }
-    public com.toedter.calendar.JDateChooser getDateChooser() {
-    return dateChooser;
-}
 
+    public com.toedter.calendar.JDateChooser getDateChooser() {
+        return dateChooser;
+    }
 
     /**
      * This method is called from within the constructor to initialize the form.
@@ -565,5 +620,3 @@ public class ReservClassView extends javax.swing.JFrame {
     private javax.swing.JTextField showpeoplenumber;
     // End of variables declaration//GEN-END:variables
 }
-
-

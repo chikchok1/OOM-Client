@@ -32,9 +32,49 @@ public class ReservLabView extends javax.swing.JFrame {
 
         initComponents();
         initDatePicker();  // ✅ 날짜 선택기 초기화
+        initPurposeComboBox();  // ✅ 사용 목적 초기화
+        initLabComboBox();  // ✅ 실습실 콤보박스 초기화
         
         // ✅ loadLabs() 제거 - Controller에서 처리할 예정
         // ✅ Controller에서 모든 이벤트 처리
+    }
+
+    /**
+     * 사용 목적 ComboBox 초기화 - 편집 가능하게 설정
+     */
+    private void initPurposeComboBox() {
+        // ComboBox를 편집 가능하게 설정
+        Purpose.setEditable(true);
+
+        // 기본 선택지 설정
+        Purpose.setModel(new DefaultComboBoxModel<>(new String[]{
+            "실습",
+            "프로젝트",
+            "스터디",
+            "세미나",
+            "동아리 활동",
+            "기타"
+        }));
+
+        System.out.println("[ReservLabView] 사용 목적 ComboBox 초기화 완료 (편집 가능)");
+    }
+
+    /**
+     * 실습실 ComboBox 초기화 - 편집 가능하게 설정
+     */
+    private void initLabComboBox() {
+        // ComboBox를 편집 가능하게 설정
+        Lab.setEditable(true);
+
+        // 기본 실습실 4개 설정 (Classrooms.txt에서 로드될 때까지 임시)
+        Lab.setModel(new DefaultComboBoxModel<>(new String[]{
+            "911호",
+            "915호",
+            "916호",
+            "918호"
+        }));
+
+        System.out.println("[ReservLabView] 실습실 ComboBox 초기화 완료 (편집 가능)");
     }
 
     /**
@@ -73,7 +113,7 @@ public class ReservLabView extends javax.swing.JFrame {
     }
 
     /**
-     * ✅ 선택한 날짜 가져오기
+     *  선택한 날짜 가져오기
      */
     public LocalDate getSelectedDate() {
         Date date = dateChooser.getDate();
@@ -112,17 +152,25 @@ public class ReservLabView extends javax.swing.JFrame {
     /**
      * 실습실 목록을 ComboBox에 설정
      * Controller에서 데이터를 전달받아 표시만 함
+     * 편집 가능 설정 유지
      * @param labs 실습실 이름 목록
      */
     public void setLabs(java.util.List<String> labs) {
         if (labs == null || labs.isEmpty()) {
             System.err.println("[ReservLabView] 실습실 목록이 비어있습니다.");
-            // 빈 모델 설정 (사용자에게 오류 표시)
-            Lab.setModel(new DefaultComboBoxModel<>(new String[0]));
+            // 기본 실습실 4개 유지
+            Lab.setModel(new DefaultComboBoxModel<>(new String[]{
+                "911호",
+                "915호",
+                "916호",
+                "918호"
+            }));
         } else {
             Lab.setModel(new DefaultComboBoxModel<>(labs.toArray(new String[0])));
             System.out.println("[ReservLabView] 실습실 " + labs.size() + "개 표시 완료");
         }
+        // 편집 가능 설정 유지
+        Lab.setEditable(true);
     }
 
     public int getStudentCount() {
@@ -154,8 +202,38 @@ public class ReservLabView extends javax.swing.JFrame {
         Reservation.addActionListener(listener); // 버튼에 바로 리스너 붙이기
     }
 
+    public String getSelectedLabRoom() {
+        Object selected = Lab.getSelectedItem();
+        if (selected == null) {
+            return null;
+        }
+        String room = selected.toString().trim();
+        return normalizeRoomName(room);
+    }
+
+    // 호환성 유지를 위한 메서드
     public String getSelectedClassRoom() {
-        return Lab.getSelectedItem().toString();
+        return getSelectedLabRoom();
+    }
+
+    private String normalizeRoomName(String room) {
+        if (room == null) {
+            return null;
+        }
+
+        room = room.trim();
+
+        // 911호:LAB → 911호
+        if (room.contains(":")) {
+            room = room.substring(0, room.indexOf(":"));
+        }
+
+        // 혹시 모를 예외 처리
+        if (!room.endsWith("호")) {
+            room = room + "호";
+        }
+
+        return room;
     }
 
     public String getSelectedTime() {
@@ -173,7 +251,19 @@ public class ReservLabView extends javax.swing.JFrame {
     }
 
     public String getPurpose() {
-        return Purpose.getSelectedItem().toString().trim();
+        Object selected = Purpose.getSelectedItem();
+        if (selected == null) {
+            return "";
+        }
+
+        String purpose = selected.toString().trim();
+
+        // "기타"를 선택했는데 추가 입력이 없으면 경고
+        if (purpose.equals("기타") || purpose.isEmpty()) {
+            return "";  // Controller에서 검증하도록
+        }
+
+        return purpose;
     }
 
     public void showMessage(String message) {
@@ -207,13 +297,10 @@ public class ReservLabView extends javax.swing.JFrame {
     public void setCapacityInfoText(String text) {
         showpeoplenumber.setText(text);
     }
+    
     // ✅ 시간 선택 콤보박스 반환
     public javax.swing.JComboBox<String> getTimeComboBox() {
         return Time;
-    }
-
-    public String getSelectedLabRoom() {
-        return Lab.getSelectedItem().toString();
     }
 
     public com.toedter.calendar.JDateChooser getDateChooser() {
