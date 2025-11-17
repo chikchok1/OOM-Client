@@ -1,3 +1,32 @@
 
-//ì„œë²„ í´ë”ì—ì„œ LoginServer ì‹¤í–‰í›„ ClassReservationì—ì„œ MainíŒ¨í‚¤ì§€ì˜ Main.java ì‹¤í–‰í•˜ë©´ ë©ë‹ˆë‹¤.
-//í˜¹ì‹œ ì•ˆë ê²½ìš° Common í´ë” clean and build í›„ Serverí´ë” Clean and build í›„ì— Client í´ë” Clean and build í•˜ë©´ í´ë¼ì´ì–¸íŠ¸ target í´ë”ì— .jaríŒŒì¼ ìƒì„±ë©ë‹ˆë‹¤.
+//?„œë²? ?´?”?—?„œ LoginServer ?‹¤?–‰?›„ ClassReservation?—?„œ Main?Œ¨?‚¤ì§??˜ Main.java ?‹¤?–‰?•˜ë©? ?©?‹ˆ?‹¤.
+//?˜¹?‹œ ?•ˆ? ê²½ìš° Common ?´?” clean and build ?›„ Server?´?” Clean and build ?›„?— Client ?´?” Clean and build ?•˜ë©? ?´?¼?´?–¸?Š¸ target ?´?”?— .jar?ŒŒ?¼ ?ƒ?„±?©?‹ˆ?‹¤.
+# ==============
+target/
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+dependency-reduced-pom.xml
+buildNumber.properties
+
+# ==============
+# NetBeans
+# ==============
+nbproject/private/
+build/
+nbbuild/
+dist/
+nbdist/
+.nb-gradle/
+
+# NetBeans backup and cache
+**/nbproject/private/
+**/nbproject/config/
+**/nbproject/privatetmp/
+
+
+.DS_Store
+Thumbs.db
+.vscode/
