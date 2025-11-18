@@ -1,29 +1,29 @@
 package Model;
-/**
- *
- * @author minju
- */
-import org.junit.jupiter.api.*;
 
+import org.junit.jupiter.api.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 class SessionTest {
 
     @AfterEach
     void resetSession() {
-        // 테스트 간 영향 방지 (초기화)
-        Session.setLoggedInUserId(null);
+        Session.clear(); // 싱글톤 초기화 메서드 사용
     }
 
     @Test
-    void testSetAndGetLoggedInUserId() {
-        // given
+    void testSetAndGetLoggedInUserId_StaticBridge() {
         String testId = "S20230001";
-
-        // when
         Session.setLoggedInUserId(testId);
-
-        // then
         assertEquals(testId, Session.getLoggedInUserId());
+        // 싱글톤 인스턴스
+        assertEquals(testId, Session.getInstance().getLoggedInUserId());
+    }
+    
+    @Test
+    void testSingletonInstance() {
+        Session s1 = Session.getInstance();
+        Session s2 = Session.getInstance();
+        
+        assertSame(s1, s2, "Session 객체는 싱글톤이어야 하므로 같은 인스턴스여야 합니다.");
     }
 }
