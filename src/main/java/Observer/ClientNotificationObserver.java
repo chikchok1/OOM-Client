@@ -57,6 +57,8 @@ public class ClientNotificationObserver implements ReservationObserver {
                 return "예약 변경 승인";
             case CHANGE_REJECTED:
                 return "예약 변경 거절";
+            case CANCELLED:
+                return "예약 취소";
             default:
                 return "알림";
         }
@@ -86,6 +88,7 @@ public class ClientNotificationObserver implements ReservationObserver {
                 return JOptionPane.INFORMATION_MESSAGE;
             case REJECTED:
             case CHANGE_REJECTED:
+            case CANCELLED:
                 return JOptionPane.WARNING_MESSAGE;
             default:
                 return JOptionPane.PLAIN_MESSAGE;
