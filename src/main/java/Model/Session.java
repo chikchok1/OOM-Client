@@ -1,5 +1,6 @@
 package Model;
 
+import Util.MessageDispatcher;
 import java.io.BufferedReader;
 import java.io.PrintWriter;
 import java.net.Socket;
@@ -9,25 +10,19 @@ import java.net.Socket;
  * 로그인한 사용자의 정보와 서버 연결을 전역에서 관리
  */
 public class Session {
-    // ✅ Singleton 인스턴스
     private static volatile Session instance;
     
-    // ✅ 인스턴스 변수로 변경
     private String loggedInUserId;
     private String loggedInUserName;
     private String loggedInUserRole;
     
-    // 소켓, 입출력 스트림
     private Socket socket;
     private PrintWriter out;
     private BufferedReader in;
     
-    // ✅ private 생성자 (외부에서 new Session() 불가)
     private Session() {
-        // 초기화 로직 (필요 시)
     }
     
-    // ✅ Singleton 인스턴스 반환 (Double-Checked Locking)
     public static Session getInstance() {
         if (instance == null) {
             synchronized (Session.class) {
@@ -105,6 +100,12 @@ public class Session {
         loggedInUserId = null;
         loggedInUserName = null;
         loggedInUserRole = null;
+        
+        // ✅ MessageDispatcher 종료
+        MessageDispatcher dispatcher = MessageDispatcher.getInstance();
+        if (dispatcher != null) {
+            dispatcher.stopDispatcher();
+        }
 
         try {
             if (out != null) {
@@ -127,7 +128,6 @@ public class Session {
     
     /**
      * 싱글톤 인스턴스 초기화 (테스트용)
-     * ⚠️ 프로덕션 코드에서는 사용하지 마세요!
      */
     public static void resetInstance() {
         if (instance != null) {
