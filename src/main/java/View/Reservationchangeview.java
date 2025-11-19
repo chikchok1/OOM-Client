@@ -10,6 +10,7 @@ import java.time.ZoneId;
 import java.util.Date;
 import javax.swing.JOptionPane;
 import javax.swing.DefaultComboBoxModel;
+
 /**
  *
  * @author YangJinWonx
@@ -18,7 +19,7 @@ public class Reservationchangeview extends javax.swing.JFrame {
 
     // 상수 정의
     private static final String[] TIME_SLOTS = {
-        "1교시", "2교시", "3교시", "4교시", "5교시", 
+        "1교시", "2교시", "3교시", "4교시", "5교시",
         "6교시", "7교시", "8교시", "9교시"
     };
     private static final String[] CALENDAR_COLUMNS = {"교시", "월", "화", "수", "목", "금", "토", "일"};
@@ -28,7 +29,7 @@ public class Reservationchangeview extends javax.swing.JFrame {
     };
     private static final String DEFAULT_ROOM = "908호";
     private static final String SELECT_OPTION = "선택";
-    
+
     // Lab 강의실 목록 (하드코딩 대신 상수로 분리)
     private static final String[] LAB_ROOMS = {"911호", "915호", "916호", "918호"};
 
@@ -121,23 +122,23 @@ public class Reservationchangeview extends javax.swing.JFrame {
                 TIME_SLOTS.length, CALENDAR_COLUMNS.length
         );
         model.setColumnIdentifiers(CALENDAR_COLUMNS);
-        
+
         // 교시 열 채우기
         for (int i = 0; i < TIME_SLOTS.length; i++) {
             model.setValueAt(TIME_SLOTS[i], i, 0);
         }
-        
+
         calendarTable.setModel(model);
         calendarTable.setRowHeight(30);
         calendarTable.setShowGrid(true);
         calendarTable.setGridColor(java.awt.Color.GRAY);
-        
+
         // 첫 번째 열(교시) 너비 고정
         javax.swing.table.TableColumn firstColumn = calendarTable.getColumnModel().getColumn(0);
         firstColumn.setPreferredWidth(60);
         firstColumn.setMaxWidth(60);
         firstColumn.setMinWidth(60);
-        
+
         System.out.println("[initCalendar] 초기 캘린더 테이블 설정 완료");
     }
 
@@ -194,82 +195,91 @@ public class Reservationchangeview extends javax.swing.JFrame {
     }
 
     public void loadClassrooms() {
-    try {
-        System.out.println("[loadClassrooms] 시작");
-        
-        if (!Model.Session.getInstance().isConnected()) {
-            System.err.println("[loadClassrooms] 서버 연결 없음");
-            return;
-        }
-        java.io.PrintWriter out = Model.Session.getInstance().getOut();
-        java.io.BufferedReader in = Model.Session.getInstance().getIn();
-        
-        if (out == null || in == null) {
-            System.err.println("[loadClassrooms] 서버 스트림 null");
-            return;
-        }
-        
-        out.println("GET_CLASSROOMS");
-        out.flush();
-        System.out.println("[loadClassrooms] GET_CLASSROOMS 요청 전송");
-        
-        String response = in.readLine();
-        System.out.println("[loadClassrooms] 서버 응답: " + response);
-        
-        if (response != null && response.startsWith("CLASSROOMS:")) {
-            String classroomList = response.substring("CLASSROOMS:".length());
-            String[] classrooms = classroomList.split(",");
-            
-            System.out.println("[loadClassrooms] 받은 강의실 수: " + classrooms.length);
-            
-            // 강의실과 실습실 분리
-            java.util.List<String> classList = new java.util.ArrayList<>();
-            java.util.List<String> labList = new java.util.ArrayList<>();
-            java.util.List<String> allRoomsList = new java.util.ArrayList<>();
-            
-            classList.add(SELECT_OPTION);
-            labList.add(SELECT_OPTION);
-            
-            for (String room : classrooms) {
-                room = room.trim();
-                if (room.contains(":")) {
-    room = room.substring(0, room.indexOf(":"));
-}
-                allRoomsList.add(room);  // 전체 목록에 추가
-                
-                // 실습실 판별
-                if (isLabRoom(room)) {
-                    labList.add(room);
-                    System.out.println("[loadClassrooms] 실습실 추가: " + room);
-                } else {
-                    classList.add(room);
-                    System.out.println("[loadClassrooms] 강의실 추가: " + room);
+        int maxRetries = 3;
+        int retryDelay = 500; // 500ms
+
+        for (int attempt = 1; attempt <= maxRetries; attempt++) {
+            try {
+                System.out.println("[loadClassrooms] 시작 (시도 " + attempt + "/" + maxRetries + ") - ClientClassroomManager 사용");
+
+                Manager.ClientClassroomManager manager = Manager.ClientClassroomManager.getInstance();
+                java.util.List<common.dto.ClassroomDTO> allRooms = manager.getAllClassrooms();
+
+                if (allRooms == null || allRooms.isEmpty()) {
+                    System.err.println("[loadClassrooms] 강의실 정보 없음 (시도 " + attempt + ")");
+
+                    // ✅ 마지막 시도가 아니면 재시도
+                    if (attempt < maxRetries) {
+                        System.out.println("[loadClassrooms] " + retryDelay + "ms 후 재시도...");
+                        Thread.sleep(retryDelay);
+                        continue;
+                    }
+                    return;
+                }
+
+                System.out.println("[loadClassrooms] 받은 강의실 수: " + allRooms.size());
+
+                // 강의실과 실습실 분리
+                java.util.List<String> classList = new java.util.ArrayList<>();
+                java.util.List<String> labList = new java.util.ArrayList<>();
+                java.util.List<String> allRoomsList = new java.util.ArrayList<>();
+
+                classList.add(SELECT_OPTION);
+                labList.add(SELECT_OPTION);
+
+                for (common.dto.ClassroomDTO classroom : allRooms) {
+                    String roomName = classroom.name;
+
+                    // 실습실 판별
+                    if ("LAB".equals(classroom.type)) {
+                        labList.add(roomName);
+                        System.out.println("[loadClassrooms] 실습실 추가: " + roomName);
+                    } else {
+                        classList.add(roomName);
+                        System.out.println("[loadClassrooms] 강의실 추가: " + roomName);
+                    }
+                }
+
+                //  강의실 먼저, 실습실 나중 순서로 전체 목록 구성
+                // "선택" 제외하고 추가
+                for (int i = 1; i < classList.size(); i++) {
+                    allRoomsList.add(classList.get(i));
+                }
+                for (int i = 1; i < labList.size(); i++) {
+                    allRoomsList.add(labList.get(i));
+                }
+
+                System.out.println("[loadClassrooms] 강의실 총 " + (classList.size() - 1) + "개, 실습실 총 " + (labList.size() - 1) + "개");
+
+                // 오른쪽 콤보박스 설정 (예약 현황 조회용)
+                Class.setModel(new DefaultComboBoxModel<>(classList.toArray(new String[0])));
+                Lab.setModel(new DefaultComboBoxModel<>(labList.toArray(new String[0])));
+
+                // 왼쪽 jComboBox3 설정 (예약 변경용) - 강의실 먼저, 실습실 나중
+                jComboBox3.setModel(new DefaultComboBoxModel<>(allRoomsList.toArray(new String[0])));
+
+                System.out.println("[loadClassrooms] 콤보박스 설정 완료");
+                return;
+            } catch (Exception e) {
+                System.err.println("[loadClassrooms] 강의실 목록 조회 중 오류 (시도 " + attempt + "): " + e.getMessage());
+                e.printStackTrace();
+
+                //  마지막 시도가 아니면 재시도
+                if (attempt < maxRetries) {
+                    try {
+                        System.out.println("[loadClassrooms] " + retryDelay + "ms 후 재시도...");
+                        Thread.sleep(retryDelay);
+                    } catch (InterruptedException ie) {
+                        Thread.currentThread().interrupt();
+                        return;
+                    }
                 }
             }
-            
-            System.out.println("[loadClassrooms] 강의실 총 " + (classList.size()-1) + "개, 실습실 총 " + (labList.size()-1) + "개");
-            
-            // 오른쪽 콤보박스 설정 (예약 현황 조회용)
-            Class.setModel(new DefaultComboBoxModel<>(classList.toArray(new String[0])));
-            Lab.setModel(new DefaultComboBoxModel<>(labList.toArray(new String[0])));
-            
-            // 왼쪽 jComboBox3 설정 (예약 변경용)
-            jComboBox3.setModel(new DefaultComboBoxModel<>(allRoomsList.toArray(new String[0])));
-            
-            System.out.println("[loadClassrooms] 콤보박스 설정 완료");
-        } else {
-            System.err.println("[loadClassrooms] 잘못된 응답 형식: " + response);
         }
-    } catch (java.io.IOException e) {
-        System.err.println("[loadClassrooms] 강의실 목록 조회 중 오류: " + e.getMessage());
-        e.printStackTrace();
     }
-}
-
-    /**
-     * 예약 현황 조회용 강의실 선택 (Class/Lab 콤보박스 사용)
-     * 오른쪽 콤보박스에서 선택한 강의실의 예약 현황을 보여줌
-     */
+        /**
+         * 예약 현황 조회용 강의실 선택 (Class/Lab 콤보박스 사용) 오른쪽 콤보박스에서 선택한 강의실의 예약 현황을 보여줌
+         */
     public String getSelectedClassRoom() {
         String classSelection = (String) Class.getSelectedItem();
         String labSelection = (String) Lab.getSelectedItem();
@@ -340,12 +350,14 @@ public class Reservationchangeview extends javax.swing.JFrame {
     public JDateChooser getDateChooser() {
         return dateChooser;
     }
+
     /**
      * Class 콤보박스 반환
      */
     public javax.swing.JComboBox<String> getClassRoomTypeComboBox() {
         return Class;
     }
+
     /**
      * Lab 콤보박스 반환
      */
@@ -370,6 +382,7 @@ public class Reservationchangeview extends javax.swing.JFrame {
 
         return "CLASS"; // 기본값
     }
+
     /**
      * This method is called from within the constructor to initialize the form.
      * WARNING: Do NOT modify this code. The content of this method is always
