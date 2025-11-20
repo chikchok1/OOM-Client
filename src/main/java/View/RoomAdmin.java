@@ -13,10 +13,7 @@ public class RoomAdmin extends JFrame {
         this.executive = executive;
         controller = new RoomAdminController(this);
 
-        /*getJButton2().addActionListener(e -> {
-            this.dispose();
-            executive.setVisible(true);
-        });*/
+        
     }
 
     public Executive getExecutive() {
@@ -91,7 +88,7 @@ public class RoomAdmin extends JFrame {
             }
         });
 
-        jLabel3.setText("교실 번호");
+        jLabel3.setText("강의실, 실습실 번호");
 
         jTextField1.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {

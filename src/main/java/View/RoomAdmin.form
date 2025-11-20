@@ -126,7 +126,7 @@
     </Component>
     <Component class="javax.swing.JLabel" name="jLabel3">
       <Properties>
-        <Property name="text" type="java.lang.String" value="&#xad50;&#xc2e4; &#xbc88;&#xd638;"/>
+        <Property name="text" type="java.lang.String" value="&#xac15;&#xc758;&#xc2e4;, &#xc2e4;&#xc2b5;&#xc2e4; &#xbc88;&#xd638;"/>
       </Properties>
     </Component>
     <Component class="javax.swing.JTextField" name="jTextField1">
