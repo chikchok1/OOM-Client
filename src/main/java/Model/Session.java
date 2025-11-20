@@ -95,18 +95,34 @@ public class Session {
     
     /**
      * 세션 정리 (로그아웃 시 호출)
+     * ✅ 리소스 해제 순서 최적화:
+     * 1. MessageDispatcher 종료 요청
+     * 2. Dispatcher가 안전하게 종료될 시간 대기
+     * 3. 출력 스트림 닫기 (서버에 신호 전달)
+     * 4. 입력 스트림 닫기
+     * 5. 소켓 닫기
      */
     public void clear() {
         loggedInUserId = null;
         loggedInUserName = null;
         loggedInUserRole = null;
         
-        // ✅ MessageDispatcher 종료
+        // ✅ 1단계: MessageDispatcher 종료 요청
         MessageDispatcher dispatcher = MessageDispatcher.getInstance();
         if (dispatcher != null) {
             dispatcher.stopDispatcher();
+            
+            // ✅ 2단계: Dispatcher가 안전하게 종료될 시간 대기
+            // (SocketTimeoutException 처리 중일 수 있음)
+            try {
+                Thread.sleep(200);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                System.out.println("[Session] clear() 대기 중 인터럽트");
+            }
         }
 
+        // ✅ 3~5단계: 스트림 및 소켓 닫기
         try {
             if (out != null) {
                 out.close();
@@ -118,7 +134,7 @@ public class Session {
                 socket.close();
             }
         } catch (Exception e) {
-            System.out.println("세션 정리 중 오류: " + e.getMessage());
+            System.out.println("[Session] 세션 정리 중 오류: " + e.getMessage());
         }
 
         out = null;
