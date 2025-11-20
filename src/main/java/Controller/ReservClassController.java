@@ -22,22 +22,6 @@ public class ReservClassController extends AbstractReservationController {
     // ============================================================
     // Hook 메서드 오버라이드 (선택적)
     // ============================================================
-    
-    /**
-     * 강의실 전용: 추가 검증 로직 예시
-     
-    @Override
-    protected boolean performAdditionalValidation(ReservationData data) {
-        // 강의실 특화 검증 로직
-        // 예시: 908호는 교수/세미나만 예약 가능
-        if (data.room.equals("908호") && data.userRole.equals("학생")) {
-            showMessage("908호는 학생 예약이 불가능합니다.");
-            return false;
-        }
-        
-        return true;
-    }
-    */
     /**
      * 강의실 전용: 성공 메시지 커스터마이징
      */

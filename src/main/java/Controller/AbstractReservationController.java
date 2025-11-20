@@ -165,7 +165,7 @@ public abstract class AbstractReservationController {
 
     /**
      * 4단계: 시간 검증 (역할별 규칙이 다름 - Hook 메서드)
-     * ✅ ReservationControllerUtil 사용
+     * ReservationControllerUtil 사용
      */
     protected boolean validateReservationTime(ReservationData data) {
         System.out.println("[시간검증] 시작시간: " + data.startTime);
