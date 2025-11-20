@@ -11,8 +11,6 @@ import Model.Session;
 import Util.MessageDispatcher; // ✅ 추가
 
 import javax.swing.*;
-import java.io.BufferedReader;
-import java.io.IOException;
 import java.io.PrintWriter;
 
 public class ExecutiveController {

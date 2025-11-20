@@ -208,7 +208,7 @@ public class Reservationchangeview extends javax.swing.JFrame {
                 if (allRooms == null || allRooms.isEmpty()) {
                     System.err.println("[loadClassrooms] 강의실 정보 없음 (시도 " + attempt + ")");
 
-                    // ✅ 마지막 시도가 아니면 재시도
+                    //  마지막 시도가 아니면 재시도
                     if (attempt < maxRetries) {
                         System.out.println("[loadClassrooms] " + retryDelay + "ms 후 재시도...");
                         Thread.sleep(retryDelay);
@@ -631,8 +631,9 @@ public class Reservationchangeview extends javax.swing.JFrame {
         calendarPanelLayout.setHorizontalGroup(
             calendarPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, calendarPanelLayout.createSequentialGroup()
-                .addGap(0, 0, Short.MAX_VALUE)
-                .addComponent(calendarScrollPane, javax.swing.GroupLayout.PREFERRED_SIZE, 392, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                .addComponent(calendarScrollPane, javax.swing.GroupLayout.PREFERRED_SIZE, 500, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addContainerGap())
         );
         calendarPanelLayout.setVerticalGroup(
             calendarPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
