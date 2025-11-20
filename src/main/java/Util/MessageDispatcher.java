@@ -70,7 +70,7 @@ public class MessageDispatcher extends Thread {
     
     /**
      * 메시지 수신 및 라우팅
-     * ✅ SocketTimeoutException을 무시하고 계속 실행
+     * SocketTimeoutException을 무시하고 계속 실행
      */
     @Override
     public void run() {
@@ -100,8 +100,12 @@ public class MessageDispatcher extends Thread {
                 }
                 
             } catch (SocketTimeoutException e) {
-                // ✅ 타임아웃은 정상 동작 - 계속 실행
+                // 타임아웃은 정상 동작 - running 체크 후 계속 실행
                 // 메시지가 없을 때 발생하므로 무시하고 다음 readLine() 호출
+                if (!running || isInterrupted()) {
+                    System.out.println("[MessageDispatcher] 타임아웃 중 종료 요청 감지");
+                    break;
+                }
                 continue;
                 
             } catch (IOException e) {
