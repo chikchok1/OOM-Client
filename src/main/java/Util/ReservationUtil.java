@@ -1,5 +1,6 @@
 package Util;
 
+import common.builder.ReservationRequest;
 import Model.Session;
 import java.awt.*;
 import java.io.*;
@@ -377,47 +378,32 @@ public class ReservationUtil {
 
         return 0;
     }
-    
+
     /**
-     * 서버로 예약 요청 전송
-     * @param name 예약자 이름
-     * @param room 방 이름
-     * @param dateString 날짜 문자열
-     * @param day 요일
-     * @param time 시간
-     * @param purpose 목적
-     * @param role 역할
-     * @param studentCount 인원 수
+     * 서버로 예약 요청 전송 (Builder Pattern 사용)
+     * @param request ReservationRequest 객체
      * @return 서버 응답 ("RESERVE_SUCCESS" 등)
      */
-    public static String sendReservationRequestToServer(String name, String room, 
-                                                       String dateString, String day, 
-                                                       String time, String purpose, 
-                                                       String role, int studentCount) {
-        // 날짜 정보 및 userId 포함 (10개 필드)
-        String userId = Session.getInstance().getLoggedInUserId();
-        String requestLine = String.join(",", "RESERVE_REQUEST", name, room, dateString, 
-                                        day, time, purpose, role, 
-                                        String.valueOf(studentCount), userId);
-
+    public static String sendReservationRequestToServer(ReservationRequest request) {
         if (!Session.getInstance().isConnected()) {
             System.err.println("[sendReservationRequestToServer] 서버 연결 없음");
             return "RESERVE_FAILED";
         }
-
         PrintWriter out = Session.getInstance().getOut();
         BufferedReader in = Session.getInstance().getIn();
-
         try {
+            // Builder Pattern으로 생성된 객체에서 프로토콜 문자열 가져오기
+            String requestLine = request.toProtocolString();
+            System.out.println("[sendReservationRequestToServer] 요청: " + request);
+            
             out.println(requestLine);
             out.flush();
-
+            
             String response = in.readLine();
             if (response == null) {
                 System.err.println("[sendReservationRequestToServer] 서버 응답 없음");
                 return "RESERVE_FAILED";
             }
-
             System.out.println("[sendReservationRequestToServer] 서버 응답: " + response);
             return response;
         } catch (IOException e) {
@@ -426,6 +412,31 @@ public class ReservationUtil {
         }
     }
     
+    /**
+     * 서버로 예약 요청 전송 (레거시 메서드 - 하위 호환성)
+     * @deprecated Builder Pattern을 사용하는 sendReservationRequestToServer(ReservationRequest)를 사용하세요
+     */
+    @Deprecated
+    public static String sendReservationRequestToServer(String name, String room, 
+                                                       String dateString, String day, 
+                                                       String time, String purpose, 
+                                                       String role, int studentCount) {
+        // Builder Pattern으로 변환하여 호출
+        // ★ 여기가 수정된 부분입니다: userId를 추가로 가져와서 설정함
+        String userId = Session.getInstance().getLoggedInUserId(); 
+        
+        ReservationRequest request = new ReservationRequest.Builder(name, room, dateString)
+            .day(day)
+            .time(time)
+            .purpose(purpose)
+            .userRole(role)
+            .studentCount(studentCount)
+            .userId(userId) // ★ 여기도 추가됨
+            .build();
+        
+        return sendReservationRequestToServer(request);
+    }
+
     /**
      * 날짜가 포함된 캘린더 테이블 생성 (상태 정보 포함)
      * @param reservedMap 예약 맵
@@ -536,4 +547,5 @@ public class ReservationUtil {
         Map<String, Map<String, String>> dummyStatusMap = new ConcurrentHashMap<>();
         return buildCalendarTableWithDates(reservedMap, dummyStatusMap, room, roomAvailable, weekStart);
     }
+    
 }

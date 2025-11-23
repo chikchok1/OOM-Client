@@ -1,5 +1,6 @@
 package Controller;
 
+import common.builder.ReservationRequest; // ★ 추가된 import
 import Model.Session;
 import Util.ReservationUtil;
 import View.RoomSelect;
@@ -314,14 +315,25 @@ public abstract class AbstractReservationController {
                     }
                 }
 
-                // 예약 요청 전송
+                // 예약 요청 전송 (Builder Pattern 사용)
                 boolean allSuccess = true;
+                String userId = Session.getInstance().getLoggedInUserId();
+                
                 for (int hour = startHour; hour <= endHour; hour++) {
                     String timeSlot = ReservationUtil.formatTimeSlot(hour);
-                    String response = ReservationUtil.sendReservationRequestToServer(
-                            data.userName, data.room, data.dateString,
-                            data.day, timeSlot, data.purpose, data.userRole, data.studentCount
-                    );
+                    
+                    // ✅ Builder Pattern으로 ReservationRequest 객체 생성
+                    ReservationRequest request = new ReservationRequest.Builder(
+                            data.userName, data.room, data.dateString)
+                        .day(data.day)
+                        .time(timeSlot)
+                        .purpose(data.purpose)
+                        .userRole(data.userRole)
+                        .studentCount(data.studentCount)
+                        .userId(userId)
+                        .build();
+                    
+                    String response = ReservationUtil.sendReservationRequestToServer(request);
 
                     if (!"RESERVE_SUCCESS".equals(response)) {
                         allSuccess = false;
