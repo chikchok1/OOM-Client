@@ -1,9 +1,9 @@
 package Controller;
 
 import Model.Session;
+import Service.UserService;
 import View.ChangePasswordView;
-import View.Executive;
-import View.RoomSelect;
+import java.awt.event.ActionEvent;
 
 import javax.swing.*;
 import java.awt.GraphicsEnvironment;
@@ -12,79 +12,47 @@ import java.io.*;
 public class ChangePasswordController {
 
     private final ChangePasswordView view;
+    private final UserService userService;
 
     public ChangePasswordController(ChangePasswordView view) {
         this.view = view;
-        view.setSaveButtonListener(e -> changePassword());
+        this.userService = UserService.getInstance();
+        this.view.addChangeButtonListener(new ChangeButtonListener());
     }
 
-    public void changePassword() {
-        String currentPassword = view.getPresentPassword().trim();
-        String newPassword = view.getChangePassword().trim();
-        String userId = Session.getInstance().getLoggedInUserId();
+    class ChangeButtonListener implements ActionListener {
 
-        if (currentPassword.isEmpty() || newPassword.isEmpty()) {
-            JOptionPane.showMessageDialog(view, "모든 필드를 입력해주세요.");
-            return;
-        }
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            String id = Session.getInstance().getCurrentUser().getId();
+            String oldPassword = view.getOldPassword();
+            String newPassword = view.getNewPassword();
+            String confirmPassword = view.getConfirmPassword();
 
-        PrintWriter out = Session.getInstance().getOut();
-        BufferedReader in = Session.getInstance().getIn();
-
-        if (out == null || in == null) {
-            JOptionPane.showMessageDialog(view, "서버와 연결되어 있지 않습니다.");
-            return;
-        }
-
-        String request = String.join(",", "CHANGE_PASSWORD", userId, currentPassword, newPassword);
-        out.println(request);
-        out.flush();
-
-        try {
-            String response = in.readLine();
-
-            switch (response) {
-                case "PASSWORD_CHANGED":
-                    JOptionPane.showMessageDialog(view, "비밀번호가 성공적으로 변경되었습니다.");
-
-                    if (!GraphicsEnvironment.isHeadless()) {
-                        char userType = userId.charAt(0); // ✅ ID 첫 글자 기준 분기
-
-                        switch (userType) {
-                            case 'S': // 학생
-                            case 'P': // 교수
-                                RoomSelect roomSelect = new RoomSelect();
-                                new RoomSelectController(roomSelect);
-                                roomSelect.setVisible(true);
-                                break;
-
-                            case 'A': // 조교
-                                Executive executive = new Executive();
-                                new ExecutiveController(executive);
-                                executive.setVisible(true);
-                                break;
-
-                            default:
-                                JOptionPane.showMessageDialog(view, "알 수 없는 사용자 유형입니다: " + userType);
-                        }
-
-                        view.dispose();
-                    }
-                    break;
-
-                case "INVALID_CURRENT_PASSWORD":
-                    JOptionPane.showMessageDialog(view, "현재 비밀번호가 일치하지 않습니다.");
-                    break;
-
-                case "USER_NOT_FOUND":
-                    JOptionPane.showMessageDialog(view, "사용자 정보를 찾을 수 없습니다.");
-                    break;
-
-                default:
-                    JOptionPane.showMessageDialog(view, "비밀번호 변경 실패: " + response);
+            if (oldPassword.isEmpty() || newPassword.isEmpty() || confirmPassword.isEmpty()) {
+                view.showMessage("모든 필드를 입력해주세요.");
+                return;
             }
-        } catch (IOException e) {
-            JOptionPane.showMessageDialog(view, "서버 응답 오류: " + e.getMessage());
+
+            if (!newPassword.equals(confirmPassword)) {
+                view.showMessage("새 비밀번호가 일치하지 않습니다.");
+                return;
+            }
+
+            String status = userService.changePassword(id, oldPassword, newPassword);
+
+            switch (status) {
+                case "success":
+                    view.showMessage("비밀번호가 성공적으로 변경되었습니다.");
+                    view.dispose();
+                    break;
+                case "fail":
+                    view.showMessage("현재 비밀번호가 일치하지 않습니다.");
+                    break;
+                default:
+                    view.showMessage("비밀번호 변경 중 오류가 발생했습니다.");
+                    break;
+            }
         }
     }
 }
