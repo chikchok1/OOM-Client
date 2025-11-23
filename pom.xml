@@ -82,7 +82,7 @@
                     <argLine>-Dfile.encoding=UTF-8 -Djava.awt.headless=true</argLine>
                     <parallel>none</parallel>
                     <reuseForks>false</reuseForks>
-                    <skipTests>true</skipTests>
+                    <skipTests>false</skipTests>
                 </configuration>
             </plugin>
 
