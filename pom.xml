@@ -19,19 +19,24 @@
     </properties>
 
     <dependencies>
-        <!-- ClassReservationCommon 의존성 추가 -->
+        <!-- ✅ ClassReservationCommon 의존성만 유지 -->
         <dependency>
             <groupId>cse.oop5</groupId>
             <artifactId>ClassReservationCommon</artifactId>
             <version>1.0-SNAPSHOT</version>
         </dependency>
 
-        <!-- ClassReservationServer 의존성 추가 -->
+        <!-- ❌ ClassReservationServer 의존성 제거 -->
+        <!-- 
+        클라이언트는 서버의 내부 구현을 알아서는 안 됩니다.
+        Common 모듈을 통해서만 통신해야 합니다.
+        
         <dependency>
             <groupId>cse.oop5</groupId>
             <artifactId>ClassReservationServer</artifactId>
             <version>1.0-SNAPSHOT</version>
         </dependency>
+        -->
 
         <!-- JUnit5 -->
         <dependency>
