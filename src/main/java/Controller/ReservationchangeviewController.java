@@ -73,6 +73,12 @@ this.view.getLabRoomTypeComboBox().addActionListener(e -> {
         // 날짜 선택 변경 시
         this.view.getDateChooser().addPropertyChangeListener("date", evt -> {
             String newSelectedRoom = view.getSelectedClassRoom();
+            // ✅ 예약 목록도 새로고침 (날짜가 바뀌면 해당 주의 예약만 표시)
+            new Thread(() -> {
+                synchronized (serverLock) {
+                    loadApprovedReservations();
+                }
+            }).start();
             refreshReservationAndAvailability(newSelectedRoom);
         });
 
@@ -156,6 +162,18 @@ this.view.getLabRoomTypeComboBox().addActionListener(e -> {
         return;
     }
 
+    // ✅ 선택된 날짜의 주간 계산
+    java.time.LocalDate selectedDate = view.getSelectedDate();
+    if (selectedDate == null) {
+        selectedDate = java.time.LocalDate.now().plusDays(1);
+    }
+    
+    // 주의 시작일 (월요일)
+    java.time.LocalDate weekStart = ReservationUtil.getWeekStart(selectedDate);
+    java.time.LocalDate weekEnd = weekStart.plusDays(6);
+    
+    System.out.println("[예약 로드] 주간 범위: " + weekStart + " ~ " + weekEnd);
+
     DefaultTableModel model = (DefaultTableModel) view.getReservationTable().getModel();
     model.setRowCount(0);
     originalReservations.clear();
@@ -204,6 +222,25 @@ this.view.getLabRoomTypeComboBox().addActionListener(e -> {
                     String status = parts[8].trim();       // 예약됨
                     int studentCount = Integer.parseInt(parts[9].trim());
                     String reservedUserId = parts[10].trim(); // ← 서버에서 주는 진짜 userId
+
+                    // ✅ 날짜 필터링: 선택한 주에 포함되는 예약만 표시
+                    try {
+                        java.time.LocalDate reservationDate = java.time.LocalDate.parse(date);
+                        
+                        System.out.println(String.format("[날짜 비교] 예약: %s, 주간: %s ~ %s", 
+                            reservationDate, weekStart, weekEnd));
+                        
+                        if (reservationDate.isBefore(weekStart) || reservationDate.isAfter(weekEnd)) {
+                            System.out.println("❌ 주간 밖: " + reservationDate);
+                            continue;  // 이번 주가 아니면 건너뜀
+                        }
+                        
+                        System.out.println("✅ 주간 내 예약: " + reservationDate);
+                        
+                    } catch (Exception dateEx) {
+                        System.err.println("[날짜 파싱 오류] " + date + " - " + dateEx.getMessage());
+                        continue;
+                    }
 
                     // 테이블 표시 (상태 추가)
                     model.addRow(new Object[]{

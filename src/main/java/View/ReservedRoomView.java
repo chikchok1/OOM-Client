@@ -51,9 +51,9 @@ public class ReservedRoomView extends JFrame {
         dateLabel = new javax.swing.JLabel("예약 날짜:");
         dateLabel.setFont(new java.awt.Font("맑은 고딕", 0, 12));
         
-        // ✅ 기존 Day ComboBox 위치에 추가 (절대 좌표 기반)
-        dateLabel.setBounds(68, 235, 70, 25);  // "요일 선택" 위치
-        dateChooser.setBounds(150, 230, 200, 30);  // Day ComboBox 위치
+        // ✅ 좌측 상단에 배치
+        dateLabel.setBounds(30, 50, 70, 25);  // x=30, y=50
+        dateChooser.setBounds(110, 45, 200, 30);  // x=110, y=45
         
         getContentPane().add(dateLabel);
         getContentPane().add(dateChooser);
@@ -64,8 +64,6 @@ public class ReservedRoomView extends JFrame {
         // 날짜 변경 시 수용인원 업데이트 (컴트 처리로 변경)
         // dateChooser.addPropertyChangeListener("date", evt -> updateCapacityInfo());
     }
-    
-
 
     /**
      * ✅ 선택한 날짜 가져오기
@@ -102,6 +100,13 @@ public class ReservedRoomView extends JFrame {
         String[] dayNames = {"월", "화", "수", "목", "금", "토", "일"};
         int dayOfWeek = date.getDayOfWeek().getValue();  // 1(월)~7(일)
         return dayNames[dayOfWeek - 1] + "요일";
+    }
+    
+    /**
+     * ✅ JDateChooser Getter (Controller에서 리스너 추가용)
+     */
+    public JDateChooser getDateChooser() {
+        return dateChooser;
     }
 
      // ✅ Controller에서 호출할 메소드
