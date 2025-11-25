@@ -16,7 +16,7 @@ import java.awt.event.ActionListener;
 import java.util.*;
 
 /**
- * 
+ * 예약 변경/취소 컨트롤러
  * 서비스 레이어와 유틸리티 클래스를 활용하여 코드 길이를 대폭 단축
  */
 public class ReservationchangeviewController extends AbstractReservationController {
@@ -111,9 +111,17 @@ public class ReservationchangeviewController extends AbstractReservationControll
     }
 
     private void setupDateTimeListeners() {
-        view.getDateChooser().addPropertyChangeListener("date", 
-            evt -> refreshReservationAndAvailability(view.getSelectedClassRoom())
-        );
+        view.getDateChooser().addPropertyChangeListener("date", evt -> {
+            String newSelectedRoom = view.getSelectedClassRoom();
+            // 예약 목록도 새로고침 (날짜가 바뀌면 해당 주의 예약만 표시)
+            new Thread(() -> {
+                synchronized (serverLock) {
+                    loadReservations();
+                }
+            }).start();
+            refreshReservationAndAvailability(newSelectedRoom);
+        });
+        
         view.getTimeComboBox().addActionListener(e -> updateCapacityPanel());
     }
 
@@ -320,7 +328,7 @@ public class ReservationchangeviewController extends AbstractReservationControll
                     "예약을 변경하시겠습니까?\n\n"
                     + "【기존 예약】\n강의실: %s\n날짜: %s (%s)\n시간: %s\n인원: %d명\n\n"
                     + "【변경 후】\n강의실: %s\n날짜: %s (%s)\n시간: %s ~ %s\n인원: %d명\n\n"
-                    + "️ 기존 예약이 자동으로 취소되고\n새로운 예약이 대기 상태로 신청됩니다.\n"
+                    + "⚠️ 기존 예약이 자동으로 취소되고\n새로운 예약이 대기 상태로 신청됩니다.\n"
                     + "조교의 승인이 다시 필요합니다.",
                     original.getRoom(), original.getDate(), original.getDay(),
                     original.getTime(), original.getStudentCount(),
@@ -401,7 +409,7 @@ public class ReservationchangeviewController extends AbstractReservationControll
         private boolean confirmCancel(ReservationDTO reservation) {
             String message = String.format(
                     "다음 예약을 취소하시겠습니까?\n\n강의실: %s\n날짜: %s (%s)\n시간: %s\n"
-                    + "인원: %d명\n\n️ 취소 후 복구할 수 없습니다.",
+                    + "인원: %d명\n\n⚠️ 취소 후 복구할 수 없습니다.",
                     reservation.getRoom(), reservation.getDate(), reservation.getDay(),
                     reservation.getTime(), reservation.getStudentCount()
             );

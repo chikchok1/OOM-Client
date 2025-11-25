@@ -1,5 +1,6 @@
 package Util;
 
+import common.builder.ReservationRequest;
 import Model.Session;
 import java.awt.*;
 import java.io.*;
@@ -133,7 +134,7 @@ public class ReservationUtil {
     
     /**
      * 서버로부터 방의 사용 가능 여부 확인 (동기 방식)
-     * ✅ MessageDispatcher 사용
+     * MessageDispatcher 사용
      */
     public static boolean checkRoomAvailabilitySync(String roomName) {
         try {
@@ -157,7 +158,7 @@ public class ReservationUtil {
             out.flush();
             System.out.println("[checkRoomAvailabilitySync] 서버 전송: " + command);
 
-            // ✅ MessageDispatcher를 통해 응답 대기 (30초 타임아웃)
+            // MessageDispatcher를 통해 응답 대기 (30초 타임아웃)
             String response = dispatcher.waitForResponse(30);
             
             if (response == null) {
@@ -189,7 +190,7 @@ public class ReservationUtil {
     
     /**
      * 서버로부터 주간 예약 데이터 로드 (상태 정보 포함)
-     * ✅ MessageDispatcher 사용
+     * MessageDispatcher 사용
      */
     public static void loadWeeklyReservationData(Map<String, Set<String>> reservedMap,
                                                 Map<String, Map<String, String>> statusMap,
@@ -223,7 +224,7 @@ public class ReservationUtil {
 
             int readCount = 0;
             while (true) {
-                // ✅ MessageDispatcher를 통해 응답 대기
+                // MessageDispatcher를 통해 응답 대기
                 String line = dispatcher.waitForResponse(30);
                 
                 if (line == null) {
@@ -281,7 +282,7 @@ public class ReservationUtil {
     
     /**
      * 서버로부터 특정 날짜/시간의 승인된 예약 인원 수 조회
-     * ✅ MessageDispatcher 사용
+     * MessageDispatcher 사용
      */
     public static int getApprovedReservedCountForDate(String room, String dateString, String time) {
         if (!Session.getInstance().isConnected()) {
@@ -300,7 +301,7 @@ public class ReservationUtil {
             out.println(String.format("GET_RESERVED_COUNT_BY_DATE,%s,%s,%s", room, dateString, time));
             out.flush();
 
-            // ✅ MessageDispatcher를 통해 응답 대기
+            // MessageDispatcher를 통해 응답 대기
             String response = dispatcher.waitForResponse(30);
             
             if (response != null && response.startsWith("RESERVED_COUNT:")) {
@@ -315,20 +316,14 @@ public class ReservationUtil {
 
         return 0;
     }
-    
-    /**
-     * 서버로 예약 요청 전송
-     * ✅ MessageDispatcher 사용
-     */
-    public static String sendReservationRequestToServer(String name, String room, 
-                                                       String dateString, String day, 
-                                                       String time, String purpose, 
-                                                       String role, int studentCount) {
-        String userId = Session.getInstance().getLoggedInUserId();
-        String requestLine = String.join(",", "RESERVE_REQUEST", name, room, dateString, 
-                                        day, time, purpose, role, 
-                                        String.valueOf(studentCount), userId);
 
+    /**
+     * 서버로 예약 요청 전송 (Builder Pattern 사용)
+     * MessageDispatcher 사용
+     * @param request ReservationRequest 객체
+     * @return 서버 응답 ("RESERVE_SUCCESS" 등)
+     */
+    public static String sendReservationRequestToServer(ReservationRequest request) {
         if (!Session.getInstance().isConnected()) {
             System.err.println("[sendReservationRequestToServer] 서버 연결 없음");
             return "RESERVE_FAILED";
@@ -342,17 +337,20 @@ public class ReservationUtil {
         }
 
         try {
+            // Builder Pattern으로 생성된 객체에서 프로토콜 문자열 가져오기
+            String requestLine = request.toProtocolString();
+            System.out.println("[sendReservationRequestToServer] 요청: " + request);
+            
             out.println(requestLine);
             out.flush();
 
-            // ✅ MessageDispatcher를 통해 응답 대기
+            // MessageDispatcher를 통해 응답 대기
             String response = dispatcher.waitForResponse(30);
             
             if (response == null) {
                 System.err.println("[sendReservationRequestToServer] 서버 응답 없음");
                 return "RESERVE_FAILED";
             }
-
             System.out.println("[sendReservationRequestToServer] 서버 응답: " + response);
             return response;
         } catch (Exception e) {
@@ -360,7 +358,7 @@ public class ReservationUtil {
             return "RESERVE_FAILED";
         }
     }
-    
+
     /**
      * 날짜가 포함된 캘린더 테이블 생성 (상태 정보 포함)
      */

@@ -62,6 +62,15 @@ public class ReservedRoomController {
             }
             view.setUpdating(false);
         });
+        
+        // ✅ [4] 날짜 선택기 리스너 추가
+        view.getDateChooser().addPropertyChangeListener("date", evt -> {
+            String selectedRoom = view.getSelectedRoom();
+            if (!"선택".equals(selectedRoom)) {
+                System.out.println("[날짜 변경] 선택된 날짜: " + view.getSelectedDateString());
+                loadReservedRooms(selectedRoom);
+            }
+        });
 
 // [4] 이전 버튼 클릭 시
 view.getBeforeButton().addActionListener(e -> {
@@ -94,6 +103,18 @@ view.getBeforeButton().addActionListener(e -> {
         }
     }
 
+    // ✅ 선택된 날짜의 주간 계산
+    java.time.LocalDate selectedDate = view.getSelectedDate();
+    if (selectedDate == null) {
+        selectedDate = java.time.LocalDate.now().plusDays(1);
+    }
+    
+    // 주의 시작일 (월요일)
+    java.time.LocalDate weekStart = getWeekStart(selectedDate);
+    java.time.LocalDate weekEnd = weekStart.plusDays(6);
+    
+    System.out.println("[예약 로드] 주간 범위: " + weekStart + " ~ " + weekEnd);
+
     String userId = Session.getInstance().getLoggedInUserId();
     boolean isPrivileged = userId.startsWith("P") || userId.startsWith("A");
 
@@ -106,25 +127,44 @@ view.getBeforeButton().addActionListener(e -> {
     }
 
     // 서버에 요청 전송
-    String request = String.format("VIEW_RESERVATION,%s,%s", userId, selectedRoom);
+    // ✅ 주간 범위를 서버에 전달
+    String request = String.format("VIEW_RESERVATION,%s,%s,%s,%s", 
+        userId, selectedRoom, weekStart.toString(), weekEnd.toString());
     out.println(request);
     out.flush();
+    
+    System.out.println("[서버 요청] " + request);
 
     try {
         String line;
+        int totalCount = 0;
+        int filteredCount = 0;
+        
         while ((line = in.readLine()) != null) {
             if (line.equals("END_OF_RESERVATION")) break;
+            
+            totalCount++;
 
             String[] tokens = line.split(",");
-            if (tokens.length < 7) continue;
+            if (tokens.length < 9) {
+                System.err.println("[필드 부족] " + line);
+                continue;  // ✅ 9개 필드로 수정
+            }
 
             String name = tokens[0].trim();     // 예약자 이름
             String room = tokens[1].trim();     // 강의실/실습실
-            String day = tokens[2].trim();      // 요일
-            String period = tokens[3].trim();   // 교시
-            String status = tokens[6].trim();   // 상태
+            String dateStr = tokens[2].trim();  // ✅ 날짜 (yyyy-MM-dd)
+            String day = tokens[3].trim();      // 요일
+            String period = tokens[4].trim();   // 교시
+            String status = tokens[7].trim();   // 상태
 
-            if (!room.equals(selectedRoom)) continue;
+            if (!room.equals(selectedRoom)) {
+                System.out.println("[방 불일치] " + room + " != " + selectedRoom);
+                continue;
+            }
+            
+            // ✅ 서버에서 이미 날짜 필터링됨 - 추가 필터링 불필요
+            filteredCount++;
 
             int col = getDayColumn(day);
             int row = getPeriodRow(period);
@@ -151,9 +191,22 @@ view.getBeforeButton().addActionListener(e -> {
                 }
             }
         }
+        
+        System.out.println(String.format("[예약 필터링 완료] 전체: %d건, 표시: %d건", 
+            totalCount, filteredCount));
+        
     } catch (IOException e) {
         JOptionPane.showMessageDialog(view, "서버 응답 처리 중 오류: " + e.getMessage());
     }
+}
+
+/**
+ * ✅ 주의 시작일 (월요일) 계산
+ */
+private java.time.LocalDate getWeekStart(java.time.LocalDate date) {
+    java.time.DayOfWeek dayOfWeek = date.getDayOfWeek();
+    int daysToSubtract = dayOfWeek.getValue() - 1; // 월요일=1
+    return date.minusDays(daysToSubtract);
 }
 
     private int getDayColumn(String day) {

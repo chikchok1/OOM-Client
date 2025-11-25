@@ -1,5 +1,6 @@
 package Controller;
 
+import common.builder.ReservationRequest;
 import Manager.ClientClassroomManager;
 import Model.Session;
 import Util.ReservationUtil;
@@ -21,7 +22,7 @@ public abstract class AbstractReservationController {
     protected final Object serverLock = new Object();
 
     /**
-     *  Strategy 패턴 적용: 기본 초기화 메서드
+     * Strategy 패턴 적용: 기본 초기화 메서드
      * StandardReservationInitStrategy를 기본 전략으로 사용
      */
     protected void initialize() {
@@ -29,7 +30,7 @@ public abstract class AbstractReservationController {
     }
     
     /**
-     *  Strategy 패턴: 전략을 주입받아 초기화
+     * Strategy 패턴: 전략을 주입받아 초기화
      * @param strategy 초기화 전략
      */
     protected void initialize(InitializationStrategy strategy) {
@@ -142,7 +143,7 @@ public abstract class AbstractReservationController {
 
     /**
      * 3단계: 날짜 검증 (공통)
-     *  ReservationControllerUtil 사용
+     * ReservationControllerUtil 사용
      */
     private boolean validateDate(ReservationData data) {
         ReservationControllerUtil.ValidationResult result = 
@@ -176,11 +177,9 @@ public abstract class AbstractReservationController {
         return true;
     }
 
-    // checkRoleBasedTimeLimit() 메서드는 ReservationControllerUtil로 이동
-
     /**
      * 5단계: 수용 인원 검증 (공통이지만 메시지가 다름 - Hook 메서드)
-     *  ReservationControllerUtil 사용
+     * ReservationControllerUtil 사용
      */
     protected boolean validateCapacity(ReservationData data) {
         ReservationControllerUtil.ValidationResult result = 
@@ -193,8 +192,6 @@ public abstract class AbstractReservationController {
         
         return true;
     }
-
-    // showCapacityErrorMessage() 메서드는 ReservationControllerUtil로 통합
 
     /**
      * 6단계: 추가 검증 (Hook 메서드)
@@ -238,14 +235,25 @@ public abstract class AbstractReservationController {
                     }
                 }
 
-                // 예약 요청 전송
+                // 예약 요청 전송 (Builder Pattern 사용)
                 boolean allSuccess = true;
+                String userId = Session.getInstance().getLoggedInUserId();
+                
                 for (int hour = startHour; hour <= endHour; hour++) {
                     String timeSlot = ReservationUtil.formatTimeSlot(hour);
-                    String response = ReservationUtil.sendReservationRequestToServer(
-                            data.userName, data.room, data.dateString,
-                            data.day, timeSlot, data.purpose, data.userRole, data.studentCount
-                    );
+                    
+                    // Builder Pattern으로 ReservationRequest 객체 생성
+                    ReservationRequest request = new ReservationRequest.Builder(
+                            data.userName, data.room, data.dateString)
+                        .day(data.day)
+                        .time(timeSlot)
+                        .purpose(data.purpose)
+                        .userRole(data.userRole)
+                        .studentCount(data.studentCount)
+                        .userId(userId)
+                        .build();
+                    
+                    String response = ReservationUtil.sendReservationRequestToServer(request);
 
                     if (!"RESERVE_SUCCESS".equals(response)) {
                         allSuccess = false;
