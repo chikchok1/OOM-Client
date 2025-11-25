@@ -263,71 +263,25 @@ public final class ClientFacade {
     }
 
     public static void changePassword(ChangePasswordView view) {
+        // Deprecated UI-handling overload kept for compatibility: delegate to request method
+        String userId = Session.getInstance().getLoggedInUserId();
         String currentPassword = view.getPresentPassword().trim();
         String newPassword = view.getChangePassword().trim();
-        String userId = Session.getInstance().getLoggedInUserId();
-
-        if (currentPassword.isEmpty() || newPassword.isEmpty()) {
-            JOptionPane.showMessageDialog(null, "모든 필드를 입력해주세요.");
-            return;
-        }
-
-        PrintWriter out = Session.getInstance().getOut();
-        if (out == null) {
-            JOptionPane.showMessageDialog(null, "서버와 연결되어 있지 않습니다.");
-            return;
-        }
-
-        String request = String.join(",", "CHANGE_PASSWORD", userId, currentPassword, newPassword);
-        out.println(request);
-        out.flush();
-
-        // Use MessageDispatcher to receive response to avoid race with dispatcher reading the socket
-        Util.MessageDispatcher dispatcher = Util.MessageDispatcher.getInstance();
-        String response = null;
-        if (dispatcher != null) {
-            response = dispatcher.waitForResponse(10); // 10초 대기
-        } else {
-            // Fallback: attempt direct read (not preferred)
-            try {
-                java.io.BufferedReader in = Session.getInstance().getIn();
-                if (in != null) response = in.readLine();
-            } catch (java.io.IOException e) {
-                JOptionPane.showMessageDialog(null, "서버 응답 오류: " + e.getMessage());
-                return;
-            }
-        }
-
-        if (response == null) {
-            JOptionPane.showMessageDialog(null, "서버 응답 없음(타임아웃)");
-            return;
-        }
-
-        switch (response) {
-            case "PASSWORD_CHANGED":
-                JOptionPane.showMessageDialog(null, "비밀번호가 성공적으로 변경되었습니다.");
-                view.dispose();
-                break;
-            case "INVALID_CURRENT_PASSWORD":
-                JOptionPane.showMessageDialog(null, "현재 비밀번호가 일치하지 않습니다.");
-                break;
-            case "USER_NOT_FOUND":
-                JOptionPane.showMessageDialog(null, "사용자 정보를 찾을 수 없습니다.");
-                break;
-            default:
-                JOptionPane.showMessageDialog(null, "비밀번호 변경 실패: " + response);
-        }
+        // Return value is ignored in this overload; controller should call changePasswordRequest instead.
+        changePasswordRequest(userId, currentPassword, newPassword);
     }
 
     /**
-     * Programmatic, non-UI overload for tests and headless callers.
-     * Returns true if password changed successfully.
+     * Send CHANGE_PASSWORD request and return raw server response string (or null on timeout/error).
+     * Controller should interpret the response and present appropriate UI notifications.
      */
-    public static boolean changePassword(String userId, String currentPassword, String newPassword) {
-        if (userId == null || userId.isEmpty()) return false;
+    public static String changePasswordRequest(String userId, String currentPassword, String newPassword) {
+        if (userId == null || userId.isEmpty()) return null;
+        if (currentPassword == null) currentPassword = "";
+        if (newPassword == null) newPassword = "";
 
         PrintWriter out = Session.getInstance().getOut();
-        if (out == null) return false;
+        if (out == null) return null;
 
         out.println(String.join(",", "CHANGE_PASSWORD", userId, currentPassword, newPassword));
         out.flush();
@@ -338,14 +292,23 @@ public final class ClientFacade {
             response = dispatcher.waitForResponse(10);
         } else {
             try {
-                BufferedReader in = Session.getInstance().getIn();
+                java.io.BufferedReader in = Session.getInstance().getIn();
                 if (in != null) response = in.readLine();
-            } catch (IOException e) {
-                return false;
+            } catch (java.io.IOException e) {
+                return null;
             }
         }
 
-        return "PASSWORD_CHANGED".equals(response);
+        return response;
+    }
+
+    /**
+     * Programmatic, non-UI overload for tests and headless callers.
+     * Returns true if password changed successfully.
+     */
+    public static boolean changePassword(String userId, String currentPassword, String newPassword) {
+        String resp = changePasswordRequest(userId, currentPassword, newPassword);
+        return "PASSWORD_CHANGED".equals(resp);
     }
 
     public static void loadUsers(DefaultTableModel model) {
