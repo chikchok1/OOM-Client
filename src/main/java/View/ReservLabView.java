@@ -126,7 +126,7 @@ public class ReservLabView extends javax.swing.JFrame {
     }
     
     /**
-     * ✅ 날짜를 문자열로 반환 ("2025-11-12" 형식)
+     *  날짜를 문자열로 반환 ("2025-11-12" 형식)
      */
     public String getSelectedDateString() {
         LocalDate date = getSelectedDate();
@@ -134,7 +134,7 @@ public class ReservLabView extends javax.swing.JFrame {
     }
 
     /**
-     * ✅ 요일 문자열 반환 (호환성 유지용)
+     *  요일 문자열 반환 (호환성 유지용)
      * 실제 날짜에서 요일을 계산
      */
     public String getSelectedDay() {

@@ -47,15 +47,21 @@ public javax.swing.JButton getBackButton() {
 
         jTable2.setModel(new javax.swing.table.DefaultTableModel(
             new Object [][] {
-                {null, null, null, null, null, null},
-                {null, null, null, null, null, null},
-                {null, null, null, null, null, null},
-                {null, null, null, null, null, null}
+                {null, null, null, null, null, null, null},
+                {null, null, null, null, null, null, null},
+                {null, null, null, null, null, null, null},
+                {null, null, null, null, null, null, null}
             },
             new String [] {
-                "예약ID", "시간", "요일", "강의실", "이름", "요청인원"
+                "예약ID", "시간", "요일", "날짜", "강의실", "이름", "요청인원"
             }
-        ));
+        ) {
+            // 테이블 수정 불가능하도록 설정
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
+        });
         jScrollPane1.setViewportView(jTable2);
 
         jLabel1.setFont(new java.awt.Font("맑은 고딕", 0, 18)); // NOI18N

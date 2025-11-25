@@ -1,102 +1,58 @@
 package Util;
 
-import java.io.BufferedReader;
-import java.io.FileReader;
-import java.io.IOException;
+import Manager.ClientClassroomManager;
+import common.dto.ClassroomDTO;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 /**
- * Classrooms.txt 파일을 읽어서 강의실/실습실 목록을 반환하는 유틸리티 클래스
+ * 강의실/실습실 목록을 서버로부터 가져오는 유틸리티 클래스
+ * ✅ 파일 직접 접근 제거 → 서버 통신으로 대체
  */
 public class ClassroomFileReader {
-    
-    private static final String FILE_PATH = "data/Classrooms.txt";
     
     /**
      * CLASS 타입 강의실 목록 조회
      */
     public static List<String> loadClassrooms() {
-        return loadRoomsByType("CLASS");
+        ClientClassroomManager manager = ClientClassroomManager.getInstance();
+        String[] classrooms = manager.getClassroomNames();
+        return Arrays.asList(classrooms);
     }
     
     /**
      * LAB 타입 실습실 목록 조회
      */
     public static List<String> loadLabs() {
-        return loadRoomsByType("LAB");
-    }
-    
-    /**
-     * 특정 타입의 방 목록 조회
-     * @param roomType "CLASS" 또는 "LAB"
-     * @return 방 이름 목록
-     */
-    private static List<String> loadRoomsByType(String roomType) {
-        List<String> rooms = new ArrayList<>();
-        
-        try (BufferedReader reader = new BufferedReader(new FileReader(FILE_PATH))) {
-            String line;
-            
-            while ((line = reader.readLine()) != null) {
-                line = line.trim();
-                
-                // 주석이나 빈 줄 건너뛰기
-                if (line.isEmpty() || line.startsWith("#")) {
-                    continue;
-                }
-                
-                // 형식: 이름,타입(CLASS/LAB),수용인원
-                String[] parts = line.split(",");
-                if (parts.length >= 2) {
-                    String roomName = parts[0].trim();
-                    String type = parts[1].trim();
-                    
-                    // 지정된 타입만 추가
-                    if (roomType.equals(type)) {
-                        rooms.add(roomName);
-                    }
-                }
-            }
-            
-            System.out.println(roomType + " 목록 로드 완료: " + rooms.size() + "개");
-            
-        } catch (IOException e) {
-            System.err.println(roomType + " 목록 로드 중 오류: " + e.getMessage());
-            e.printStackTrace();
-        }
-        
-        return rooms;
+        ClientClassroomManager manager = ClientClassroomManager.getInstance();
+        String[] labs = manager.getLabNames();
+        return Arrays.asList(labs);
     }
     
     /**
      * 모든 강의실/실습실 정보 조회 (타입 구분 없이)
      */
     public static List<RoomInfo> loadAllRooms() {
+        ClientClassroomManager manager = ClientClassroomManager.getInstance();
         List<RoomInfo> rooms = new ArrayList<>();
         
-        try (BufferedReader reader = new BufferedReader(new FileReader(FILE_PATH))) {
-            String line;
-            
-            while ((line = reader.readLine()) != null) {
-                line = line.trim();
-                
-                if (line.isEmpty() || line.startsWith("#")) {
-                    continue;
-                }
-                
-                String[] parts = line.split(",");
-                if (parts.length >= 3) {
-                    String name = parts[0].trim();
-                    String type = parts[1].trim();
-                    int capacity = Integer.parseInt(parts[2].trim());
-                    
-                    rooms.add(new RoomInfo(name, type, capacity));
-                }
+        // 강의실 추가
+        String[] classrooms = manager.getClassroomNames();
+        for (String name : classrooms) {
+            ClassroomDTO dto = manager.getClassroom(name);
+            if (dto != null) {
+                rooms.add(new RoomInfo(dto.name, dto.type, dto.capacity));
             }
-            
-        } catch (IOException | NumberFormatException e) {
-            System.err.println("전체 방 목록 로드 중 오류: " + e.getMessage());
+        }
+        
+        // 실습실 추가
+        String[] labs = manager.getLabNames();
+        for (String name : labs) {
+            ClassroomDTO dto = manager.getClassroom(name);
+            if (dto != null) {
+                rooms.add(new RoomInfo(dto.name, dto.type, dto.capacity));
+            }
         }
         
         return rooms;

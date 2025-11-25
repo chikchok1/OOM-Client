@@ -8,10 +8,9 @@ import View.ClientAdmin;
 import View.ChangePasswordView;
 import View.ClassroomReservationApproval;
 import Model.Session;
+import Util.MessageDispatcher; // ✅ 추가
 
 import javax.swing.*;
-import java.io.BufferedReader;
-import java.io.IOException;
 import java.io.PrintWriter;
 
 public class ExecutiveController {
@@ -24,18 +23,22 @@ public class ExecutiveController {
 
         this.executive.setChangePasswordActionListener(e -> openChangePasswordView());
 
-        // 예약 요청 알림
+        // ✅ 예약 요청 알림 - 백그라운드 스레드에서 실행
         if (!hasShownAlert) {
-            int count = getPendingRequestCountFromServer();
-            if (count > 0) {
-                JOptionPane.showMessageDialog(
-                        executive,
-                        "현재 대기 중인 예약 요청이 총 " + count + "건 있습니다.",
-                        "예약 요청 알림",
-                        JOptionPane.INFORMATION_MESSAGE
-                );
-            }
-            hasShownAlert = true;
+            new Thread(() -> {
+                int count = getPendingRequestCountFromServer();
+                if (count > 0) {
+                    SwingUtilities.invokeLater(() -> {
+                        JOptionPane.showMessageDialog(
+                                executive,
+                                "현재 대기 중인 예약 요청이 총 " + count + "건 있습니다.",
+                                "예약 요청 알림",
+                                JOptionPane.INFORMATION_MESSAGE
+                        );
+                    });
+                }
+                hasShownAlert = true;
+            }).start();
         }
 
         // [1] 예약 확인
@@ -83,24 +86,25 @@ public class ExecutiveController {
     }
 
     private void openChangePasswordView() {
-        ChangePasswordView changePasswordView = new ChangePasswordView(executive);  // ✅ Executive 전달
+        ChangePasswordView changePasswordView = new ChangePasswordView(executive);
         new ChangePasswordController(changePasswordView);
         changePasswordView.setVisible(true);
-        executive.setVisible(false);  // ✅ 창 숨김 (재사용 목적)
+        executive.setVisible(false);
     }
 
     private void logout() {
         try {
             PrintWriter out = Session.getInstance().getOut();
-            BufferedReader in = Session.getInstance().getIn();
+            MessageDispatcher dispatcher = MessageDispatcher.getInstance();
 
             if (out != null) {
                 out.println("EXIT");
                 out.flush();
             }
 
-            if (in != null) {
-                String response = in.readLine();
+            if (dispatcher != null) {
+                // ✅ MessageDispatcher를 통해 응답 대기
+                String response = dispatcher.waitForResponse(5);
                 System.out.println("서버 응답: " + response);
             }
         } catch (Exception ex) {
@@ -115,11 +119,14 @@ public class ExecutiveController {
         }
     }
 
+    /**
+     * ✅ MessageDispatcher를 사용하여 서버로부터 대기 중인 예약 요청 수 조회
+     */
     private int getPendingRequestCountFromServer() {
         PrintWriter out = Session.getInstance().getOut();
-        BufferedReader in = Session.getInstance().getIn();
+        MessageDispatcher dispatcher = MessageDispatcher.getInstance();
 
-        if (out == null || in == null) {
+        if (out == null || dispatcher == null) {
             System.out.println("서버 연결이 없습니다.");
             return 0;
         }
@@ -127,11 +134,18 @@ public class ExecutiveController {
         try {
             out.println("COUNT_PENDING_REQUEST");
             out.flush();
-            String response = in.readLine();
+            
+            // ✅ MessageDispatcher를 통해 응답 대기 (30초 타임아웃)
+            String response = dispatcher.waitForResponse(30);
+            
             if (response != null && response.startsWith("PENDING_COUNT:")) {
                 return Integer.parseInt(response.split(":")[1].trim());
+            } else {
+                System.out.println("서버 응답 형식 오류: " + response);
             }
-        } catch (IOException e) {
+        } catch (NumberFormatException e) {
+            System.out.println("서버 응답 파싱 오류: " + e.getMessage());
+        } catch (Exception e) {
             System.out.println("서버 응답 오류: " + e.getMessage());
         }
         return 0;

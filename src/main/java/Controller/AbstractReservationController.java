@@ -1,6 +1,7 @@
 package Controller;
 
-import common.builder.ReservationRequest; // ★ 추가된 import
+import common.builder.ReservationRequest;
+import Manager.ClientClassroomManager;
 import Model.Session;
 import Util.ReservationUtil;
 import View.RoomSelect;
@@ -21,17 +22,26 @@ public abstract class AbstractReservationController {
     protected final Object serverLock = new Object();
 
     /**
-     * 초기화 - 공통 로직
+     * Strategy 패턴 적용: 기본 초기화 메서드
+     * StandardReservationInitStrategy를 기본 전략으로 사용
      */
     protected void initialize() {
-        setupEventListeners();
-        loadInitialData();
+        initialize(new StandardReservationInitStrategy());
+    }
+    
+    /**
+     * Strategy 패턴: 전략을 주입받아 초기화
+     * @param strategy 초기화 전략
+     */
+    protected void initialize(InitializationStrategy strategy) {
+        strategy.initialize(this);
     }
 
     /**
      * 이벤트 리스너 설정 - 공통 로직
+     * Strategy 패턴 적용: package-private으로 변경하여 전략 클래스에서 접근 가능
      */
-    private void setupEventListeners() {
+    void setupEventListeners() {
         resetReservationButtonListener();
         addReservationListener(new ReservationListener());
 
@@ -55,58 +65,8 @@ public abstract class AbstractReservationController {
         });
     }
 
-    /**
-     * 초기 데이터 로드 - 공통 로직
-     */
-    private void loadInitialData() {
-        new Thread(() -> {
-            synchronized (serverLock) {
-                if (Session.getInstance().isConnected()) {
-                    common.manager.ClassroomManager.getInstance().refreshFromServer(
-                            Session.getInstance().getOut(), Session.getInstance().getIn()
-                    );
-                }
-
-                List<String> rooms = loadRoomList();
-
-                if (rooms.isEmpty()) {
-                    SwingUtilities.invokeLater(() ->
-                            showMessage(getRoomTypeName() + " 목록을 불러올 수 없습니다.\nClassrooms.txt 파일을 확인해주세요.")
-                    );
-                }
-
-                setRoomList(rooms);
-
-                String selectedRoom = getSelectedRoom();
-                boolean isAvailable = ReservationUtil.checkRoomAvailabilitySync(selectedRoom);
-
-                java.time.LocalDate selectedDate = getSelectedDate();
-                if (selectedDate == null) {
-                    selectedDate = java.time.LocalDate.now().plusDays(1);
-                }
-                java.time.LocalDate weekStart = ReservationUtil.getWeekStart(selectedDate);
-                java.time.LocalDate weekEnd = weekStart.plusDays(6);
-                ReservationUtil.loadWeeklyReservationData(reservedMap, statusMap, selectedRoom, weekStart, weekEnd);
-
-                String dateString = selectedDate.toString();
-                String day = getSelectedDay();
-                String time = getSelectedTime();
-                int reservedCapacity = ReservationUtil.getApprovedReservedCountForDate(selectedRoom, dateString, time);
-
-                final int finalReservedCapacity = reservedCapacity;
-                final java.time.LocalDate finalWeekStart = weekStart;
-                SwingUtilities.invokeLater(() -> {
-                    JTable updatedTable = ReservationUtil.buildCalendarTableWithDates(
-                            reservedMap, statusMap, selectedRoom, isAvailable, finalWeekStart);
-                    updateCalendarTable(updatedTable);
-                    updateCapacityPanelWithData(selectedRoom, day, time, finalReservedCapacity);
-                });
-            }
-        }).start();
-    }
-
     // ============================================================
-    // 템플릿 메서드: 예약 프로세스의 알고리즘 골격
+    // 템플릿 메서드: 예약 프로세스의 알고리즘
     // ============================================================
 
     /**
@@ -183,94 +143,54 @@ public abstract class AbstractReservationController {
 
     /**
      * 3단계: 날짜 검증 (공통)
+     * ReservationControllerUtil 사용
      */
     private boolean validateDate(ReservationData data) {
-        java.time.LocalDate today = java.time.LocalDate.now();
-        java.time.LocalDate tomorrow = today.plusDays(1);
-
-        if (data.selectedDate.isBefore(tomorrow)) {
-            showMessage("최소 하루 전에 예약해야 합니다.\n" +
-                    data.selectedDate.toString() + "일 사용을 원하시면 " +
-                    data.selectedDate.minusDays(1).toString() + "일까지 예약해주세요.");
+        ReservationControllerUtil.ValidationResult result = 
+            ReservationControllerUtil.validateReservationDate(data.selectedDate);
+        
+        if (!result.isValid) {
+            showMessage(result.errorMessage);
             return false;
         }
-
+        
         return true;
     }
 
     /**
      * 4단계: 시간 검증 (역할별 규칙이 다름 - Hook 메서드)
-     * 서브클래스에서 오버라이드 가능하지만, 기본 구현 제공
+     * ReservationControllerUtil 사용
      */
     protected boolean validateReservationTime(ReservationData data) {
-        int startHour = ReservationUtil.parseTimeToHour(data.startTime);
-        int endHour = ReservationUtil.parseTimeToHour(data.endTime);
-
-        System.out.println("[시간검증] 시작시간: " + data.startTime + " → " + startHour);
-        System.out.println("[시간검증] 종료시간: " + data.endTime + " → " + endHour);
-
-        if (startHour > endHour) {
-            showMessage("종료 시간은 시작 시간보다 늦어야 합니다.");
-            return false;
-        }
-
-        int duration = endHour - startHour + 1;
-        System.out.println("[시간검증] 예약 시간: " + duration + "시간 (" + startHour + "교시~" + endHour + "교시)");
+        System.out.println("[시간검증] 시작시간: " + data.startTime);
+        System.out.println("[시간검증] 종료시간: " + data.endTime);
         System.out.println("[시간검증] 사용자 역할: " + data.userRole);
-
-        // 역할별 시간 제한 (Hook 메서드 호출)
-        return checkRoleBasedTimeLimit(data.userRole, duration);
-    }
-
-    /**
-     * Hook 메서드: 역할별 시간 제한 체크
-     * 서브클래스에서 강의실/실습실별 다른 규칙을 적용할 수 있음
-     */
-    protected boolean checkRoleBasedTimeLimit(String role, int duration) {
-        if (role.equals("학생") && duration > 2) {
-            showMessage("학생은 최대 2시간까지만 예약 가능합니다.\n선택: " + duration + "시간");
+        
+        ReservationControllerUtil.ValidationResult result = 
+            ReservationControllerUtil.validateTimeRange(data.startTime, data.endTime, data.userRole);
+        
+        if (!result.isValid) {
+            showMessage(result.errorMessage);
             return false;
         }
-        if (!role.equals("학생") && duration > 3) {
-            showMessage("교수는 최대 3시간까지만 예약 가능합니다.\n선택: " + duration + "시간");
-            return false;
-        }
+        
         return true;
     }
 
     /**
      * 5단계: 수용 인원 검증 (공통이지만 메시지가 다름 - Hook 메서드)
+     * ReservationControllerUtil 사용
      */
     protected boolean validateCapacity(ReservationData data) {
-        common.manager.ClassroomManager manager = common.manager.ClassroomManager.getInstance();
+        ReservationControllerUtil.ValidationResult result = 
+            ReservationControllerUtil.validateCapacity(data.room, data.studentCount);
         
-        if (!manager.checkCapacity(data.room, data.studentCount)) {
-            common.manager.ClassroomManager.Classroom classroom = manager.getClassroom(data.room);
-            
-            // Hook 메서드 호출 - 서브클래스에서 메시지 커스터마이징 가능
-            showCapacityErrorMessage(classroom, data.studentCount);
+        if (!result.isValid) {
+            showMessage(result.errorMessage);
             return false;
         }
-
+        
         return true;
-    }
-
-    /**
-     * Hook 메서드: 수용 인원 초과 메시지
-     * 서브클래스에서 강의실/실습실별 다른 메시지 표시 가능
-     */
-    protected void showCapacityErrorMessage(common.manager.ClassroomManager.Classroom classroom, int requestedCount) {
-        showMessage(String.format(
-                "예약 불가!\n\n"
-                        + "요청 인원: %d명\n"
-                        + "최대 허용: %d명\n\n"
-                        + "(이 %s은(는) 수용 인원 %d명의 50%%인 %d명까지만 예약 가능합니다)",
-                requestedCount,
-                classroom.getAllowedCapacity(),
-                getRoomTypeName(),
-                classroom.capacity,
-                classroom.getAllowedCapacity()
-        ));
     }
 
     /**
@@ -322,7 +242,7 @@ public abstract class AbstractReservationController {
                 for (int hour = startHour; hour <= endHour; hour++) {
                     String timeSlot = ReservationUtil.formatTimeSlot(hour);
                     
-                    // ✅ Builder Pattern으로 ReservationRequest 객체 생성
+                    // Builder Pattern으로 ReservationRequest 객체 생성
                     ReservationRequest request = new ReservationRequest.Builder(
                             data.userName, data.room, data.dateString)
                         .day(data.day)
@@ -377,10 +297,6 @@ public abstract class AbstractReservationController {
         ));
     }
 
-    // ============================================================
-    // 기존 메서드들
-    // ============================================================
-
     /**
      * 예약 리스너 - 템플릿 메서드 호출
      */
@@ -428,9 +344,9 @@ public abstract class AbstractReservationController {
         }).start();
     }
 
-    protected void updateCapacityPanelWithData(String room, String day, String time, int reservedCapacity) {
-        common.manager.ClassroomManager mgr = common.manager.ClassroomManager.getInstance();
-        common.manager.ClassroomManager.Classroom c = mgr.getClassroom(room);
+    public void updateCapacityPanelWithData(String room, String day, String time, int reservedCapacity) {
+        ClientClassroomManager mgr = ClientClassroomManager.getInstance();
+        common.dto.ClassroomDTO c = mgr.getClassroom(room);
 
         if (c == null) {
             setCapacityInfoText(getRoomTypeName() + " 정보 없음");
@@ -453,8 +369,8 @@ public abstract class AbstractReservationController {
         String day = getSelectedDay();
         String time = getSelectedTime();
 
-        common.manager.ClassroomManager mgr = common.manager.ClassroomManager.getInstance();
-        common.manager.ClassroomManager.Classroom c = mgr.getClassroom(room);
+        ClientClassroomManager mgr = ClientClassroomManager.getInstance();
+        common.dto.ClassroomDTO c = mgr.getClassroom(room);
 
         if (c == null) {
             setCapacityInfoText(getRoomTypeName() + " 정보 없음");

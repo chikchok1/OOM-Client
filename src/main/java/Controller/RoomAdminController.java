@@ -18,6 +18,7 @@ public class RoomAdminController {
         view.getJButton2().addActionListener(e -> goBackToExecutive());
     }
 private void initListeners() {
+    // 기존 리스너 제거 (중복 방지)
     for (ActionListener al : view.getConfirmButton().getActionListeners()) {
         view.getConfirmButton().removeActionListener(al);
     }
@@ -37,13 +38,13 @@ private void initListeners() {
             roomNumber = roomNumber + "호";
         }
         
-        final String finalRoomNumber = roomNumber; // final 변수로 만들기
+        final String finalRoomNumber = roomNumber;
+        final String finalCapacityStr = capacityStr;
 
         new Thread(() -> {
             PrintWriter out = Session.getInstance().getOut();
-            BufferedReader in = Session.getInstance().getIn();
 
-            if (out == null || in == null) {
+            if (out == null) {
                 SwingUtilities.invokeLater(() -> 
                     JOptionPane.showMessageDialog(view, "서버와 연결되어 있지 않습니다.")
                 );
@@ -53,24 +54,30 @@ private void initListeners() {
             try {
                 // 1. 상태 업데이트
                 String command = "UPDATE_ROOM_STATUS," + finalRoomNumber + "," + status;
-                out.println(command);
-                out.flush();
+                synchronized (out) {
+                    out.println(command);
+                    out.flush();
+                }
                 System.out.println("[RoomAdmin] 상태 변경 전송: " + command);
 
-                String response = in.readLine();
+                // MessageDispatcher로부터 응답 대기
+                String response = Util.MessageDispatcher.getInstance().waitForResponse(3000);
                 System.out.println("[RoomAdmin] 상태 변경 응답: " + response);
 
                 // 2. 수용인원 업데이트 (입력된 경우)
                 String capacityResponse = "NOT_UPDATED";
-                if (!capacityStr.isEmpty()) {
+                if (!finalCapacityStr.isEmpty()) {
                     try {
-                        int capacity = Integer.parseInt(capacityStr);
+                        int capacity = Integer.parseInt(finalCapacityStr);
                         String capacityCommand = "UPDATE_ROOM_CAPACITY," + finalRoomNumber + "," + capacity;
-                        out.println(capacityCommand);
-                        out.flush();
+                        
+                        synchronized (out) {
+                            out.println(capacityCommand);
+                            out.flush();
+                        }
                         System.out.println("[RoomAdmin] 수용인원 변경 전송: " + capacityCommand);
                         
-                        capacityResponse = in.readLine();
+                        capacityResponse = Util.MessageDispatcher.getInstance().waitForResponse(3000);
                         System.out.println("[RoomAdmin] 수용인원 변경 응답: " + capacityResponse);
                     } catch (NumberFormatException ex) {
                         SwingUtilities.invokeLater(() -> 
@@ -83,7 +90,7 @@ private void initListeners() {
                 final String finalCapacityResponse = capacityResponse;
                 SwingUtilities.invokeLater(() -> {
                     if (response == null) {
-                        JOptionPane.showMessageDialog(view, "서버 응답이 없습니다.");
+                        JOptionPane.showMessageDialog(view, "서버 응답 시간 초과");
                         return;
                     }
 
@@ -94,8 +101,8 @@ private void initListeners() {
                         
                         // 수용인원도 업데이트했다면
                         if ("CAPACITY_UPDATED".equals(finalCapacityResponse)) {
-                            message.append("\n수용인원도 ").append(capacityStr).append("명으로 변경되었습니다.");
-                        } else if (!capacityStr.isEmpty() && !"NOT_UPDATED".equals(finalCapacityResponse)) {
+                            message.append("\n수용인원도 ").append(finalCapacityStr).append("명으로 변경되었습니다.");
+                        } else if (!finalCapacityStr.isEmpty() && !"NOT_UPDATED".equals(finalCapacityResponse)) {
                             if ("ROOM_NOT_FOUND".equals(finalCapacityResponse)) {
                                 message.append("\n(주의: 수용인원 변경 실패 - 강의실을 찾을 수 없습니다)");
                             } else {
@@ -116,7 +123,7 @@ private void initListeners() {
                     }
                 });
 
-            } catch (IOException ex) {
+            } catch (Exception ex) {
                 ex.printStackTrace();
                 SwingUtilities.invokeLater(() ->
                     JOptionPane.showMessageDialog(view, "통신 오류: " + ex.getMessage())
@@ -135,52 +142,4 @@ private void initListeners() {
             System.err.println("[오류] Executive 인스턴스가 null입니다.");
         }
     }
-    
-    private void updateRoomSettings() {
-    String roomNumber = view.getRoomNumberField().getText().trim();
-    String status = (String) view.getStatusComboBox().getSelectedItem();
-    String capacityStr = view.getCapacityField().getText().trim();
-    
-    if (roomNumber.isEmpty()) {
-        JOptionPane.showMessageDialog(view, "강의실 번호를 입력하세요.");
-        return;
-    }
-
-    new Thread(() -> {
-        PrintWriter out = Session.getInstance().getOut();
-        BufferedReader in = Session.getInstance().getIn();
-
-        try {
-            // 1. 상태 업데이트
-            out.println("UPDATE_ROOM_STATUS," + roomNumber + "," + status);
-            out.flush();
-            String statusResponse = in.readLine();
-            
-            // 2. 수용인원 업데이트 (입력된 경우)
-            if (!capacityStr.isEmpty()) {
-                try {
-                    int capacity = Integer.parseInt(capacityStr);
-                    out.println("UPDATE_ROOM_CAPACITY," + roomNumber + "," + capacity);
-                    out.flush();
-                    String capacityResponse = in.readLine();
-                    
-                    SwingUtilities.invokeLater(() -> {
-                        if ("CAPACITY_UPDATED".equals(capacityResponse)) {
-                            JOptionPane.showMessageDialog(view, 
-                                "강의실 설정이 업데이트되었습니다.\n" +
-                                "상태: " + status + "\n" +
-                                "수용인원: " + capacity + "명");
-                        }
-                    });
-                } catch (NumberFormatException e) {
-                    SwingUtilities.invokeLater(() -> 
-                        JOptionPane.showMessageDialog(view, "올바른 숫자를 입력하세요."));
-                }
-            }
-        } catch (IOException ex) {
-            ex.printStackTrace();
-        }
-    }).start();
-}
-    
 }

@@ -12,6 +12,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.Socket;
+import javax.swing.JOptionPane;
 
 public class RoomSelectController {
 
@@ -36,38 +37,78 @@ public class RoomSelectController {
     }
 
     private void openChangePasswordView() {
-        ChangePasswordView changePasswordView = new ChangePasswordView(view);  // RoomSelect 전달
+        ChangePasswordView changePasswordView = new ChangePasswordView(view);
         new ChangePasswordController(changePasswordView);
         changePasswordView.setVisible(true);
-        view.setVisible(false);  // 재사용을 위해 숨김 처리
+        view.setVisible(false);
     }
 
     private void openReservClass() {
+        // ✅ 서버 연결 확인
+        if (!isServerConnected()) {
+            showConnectionError();
+            return;
+        }
+        
         ReservClassView reservClassView = new ReservClassView();
-        ReservClassController controller = new ReservClassController(reservClassView);  // ✅ Controller 먼저 생성
+        ReservClassController controller = new ReservClassController(reservClassView);
         reservClassView.setVisible(true);
         view.dispose();
     }
 
     private void openReservLab() {
-    ReservLabView reservLabView = new ReservLabView();
-    ReservLabController controller = new ReservLabController(reservLabView); // ✅ 변수로 잡기
-    reservLabView.setVisible(true);
-    view.dispose();
-}
+        // ✅ 서버 연결 확인
+        if (!isServerConnected()) {
+            showConnectionError();
+            return;
+        }
+        
+        ReservLabView reservLabView = new ReservLabView();
+        ReservLabController controller = new ReservLabController(reservLabView);
+        reservLabView.setVisible(true);
+        view.dispose();
+    }
 
     private void openReservedClassRoom() {
-        ReservedRoomView reservedRoomView = new ReservedRoomView(this.view); // RoomSelect 전달
+        // ✅ 서버 연결 확인
+        if (!isServerConnected()) {
+            showConnectionError();
+            return;
+        }
+        
+        ReservedRoomView reservedRoomView = new ReservedRoomView(this.view);
         new ReservedRoomController(reservedRoomView);
         reservedRoomView.setVisible(true);
-        view.setVisible(false); // dispose()가 아닌 setVisible(false)로 창 재사용
+        view.setVisible(false);
     }
 
     private void openReservationChange() {
+        // ✅ 서버 연결 확인 추가 - 이게 핵심!
+        if (!isServerConnected()) {
+            showConnectionError();
+            return;
+        }
+        
         Reservationchangeview changeView = new Reservationchangeview();
         new ReservationchangeviewController(changeView);
         changeView.setVisible(true);
         view.dispose();
+    }
+
+    // ✅ 서버 연결 상태 확인 메서드
+    private boolean isServerConnected() {
+        return Session.getInstance().isConnected();
+    }
+
+    // ✅ 연결 오류 메시지 표시
+    private void showConnectionError() {
+        JOptionPane.showMessageDialog(view,
+            "서버 연결이 끊어졌습니다.\n다시 로그인해주세요.",
+            "연결 오류",
+            JOptionPane.ERROR_MESSAGE);
+        
+        // 로그인 화면으로 강제 이동
+        handleLogout();
     }
 
     private void logoutAndCloseSocket() {
@@ -102,12 +143,12 @@ public class RoomSelectController {
     }
 
     private void handleLogout() {
-
         System.out.println("로그아웃 버튼 클릭됨 - RoomSelect 종료 시도");
+        
         // 서버에 로그아웃 요청 및 소켓 종료
         logoutAndCloseSocket();
 
-        RoomSelect.destroyInstance(); // 인스턴스 초기화
+        RoomSelect.destroyInstance();
         view.dispose();
 
         LoginForm loginForm = new LoginForm();
