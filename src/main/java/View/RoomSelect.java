@@ -115,7 +115,7 @@ public class RoomSelect extends javax.swing.JFrame {
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
 
-        jLabel1.setText("에약할 교실을 선택해주세요");
+        jLabel1.setText("예약할 교실을 선택해주세요");
 
         Class.setText("강의실");
         Class.addActionListener(new java.awt.event.ActionListener() {
