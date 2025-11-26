@@ -21,14 +21,14 @@ public class ReservedRoomView extends JFrame {
         this.executive = executive;
         this.roomSelect = null;
         
+        initDatePicker();      
         try {
     javax.swing.UIManager.setLookAndFeel("javax.swing.plaf.nimbus.NimbusLookAndFeel");
 } catch (Exception e) {
     e.printStackTrace();
 }
-                initDatePicker();  // ✅ 날짜 선택기 초기화
-
-        
+            
+   
     }
       private void initDatePicker() {
         // 날짜 선택기 생성
@@ -142,7 +142,8 @@ public class ReservedRoomView extends JFrame {
     public ReservedRoomView(RoomSelect roomSelect) {
         initComponents();
         this.roomSelect = roomSelect;
-        this.executive = null;
+        this.executive = null;      
+        initDatePicker();                
     }
 
     // ✔ getter로 컨트롤러에서 창 재활용 여부 판단
