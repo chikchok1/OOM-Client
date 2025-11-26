@@ -26,7 +26,30 @@ public class ReservedRoomController {
 
     public ReservedRoomController(ReservedRoomView view) {
         this.view = view;
+        
+        // ✅ 강의실/실습실 목록 초기화
+        initializeRoomList();
+        
         addListeners();
+    }
+    
+    /**
+     * ✅ 강의실/실습실 목록 초기화
+     */
+    private void initializeRoomList() {
+        new Thread(() -> {
+            Manager.ClientClassroomManager manager = Manager.ClientClassroomManager.getInstance();
+            
+            // 서버로부터 최신 데이터 가져오기
+            if (manager.refreshFromServer()) {
+                javax.swing.SwingUtilities.invokeLater(() -> {
+                    view.loadRooms();
+                    System.out.println("[ReservedRoomController] 강의실 목록 초기화 완료");
+                });
+            } else {
+                System.err.println("[ReservedRoomController] 강의실 목록 로드 실패");
+            }
+        }).start();
     }
 
     private void addListeners() {
@@ -332,6 +355,8 @@ public class ReservedRoomController {
             case "수요일" -> 3;
             case "목요일" -> 4;
             case "금요일" -> 5;
+            case "토요일" -> 6;
+            case "일요일" -> 7;
             default -> -1;
         };
     }

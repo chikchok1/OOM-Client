@@ -109,33 +109,34 @@ public class ReservedRoomView extends JFrame {
         return dateChooser;
     }
 
-     // ✅ Controller에서 호출할 메소드
-    public void loadClassrooms() {
-        // ✅ 서버에서 강의실 목록 받아오기
-        try {
-            if (!Model.Session.getInstance().isConnected()) {
-                System.err.println("서버 연결이 없습니다.");
-                return;
+    /**
+     * ✅ ClientClassroomManager를 사용하여 강의실/실습실 목록 로드
+     */
+    public void loadRooms() {
+        Manager.ClientClassroomManager manager = Manager.ClientClassroomManager.getInstance();
+        
+        // 강의실 목록 로드
+        java.util.List<String> classrooms = manager.getClassrooms();
+        if (classrooms != null && !classrooms.isEmpty()) {
+            String[] classArray = new String[classrooms.size() + 1];
+            classArray[0] = "선택";
+            for (int i = 0; i < classrooms.size(); i++) {
+                classArray[i + 1] = classrooms.get(i);
             }
-            
-            java.io.PrintWriter out = Model.Session.getInstance().getOut();
-            java.io.BufferedReader in = Model.Session.getInstance().getIn();
-            
-            out.println("GET_CLASSROOMS");
-            out.flush();
-            
-            String response = in.readLine();
-            if (response != null && response.startsWith("CLASSROOMS:")) {
-                String classroomList = response.substring("CLASSROOMS:".length());
-                String[] classrooms = classroomList.split(",");
-                Class.setModel(new DefaultComboBoxModel<>(classrooms));
-                System.out.println("강의실 로드 완료: " + classrooms.length + "개");
-            } else {
-                System.err.println("강의실 목록 조회 실패: " + response);
+            Class.setModel(new DefaultComboBoxModel<>(classArray));
+            System.out.println("[ReservedRoomView] 강의실 로드 완료: " + classrooms.size() + "개");
+        }
+        
+        // 실습실 목록 로드
+        java.util.List<String> labs = manager.getLabs();
+        if (labs != null && !labs.isEmpty()) {
+            String[] labArray = new String[labs.size() + 1];
+            labArray[0] = "선택";
+            for (int i = 0; i < labs.size(); i++) {
+                labArray[i + 1] = labs.get(i);
             }
-            
-        } catch (java.io.IOException e) {
-            System.err.println("강의실 목록 조회 중 오류: " + e.getMessage());
+            Lab.setModel(new DefaultComboBoxModel<>(labArray));
+            System.out.println("[ReservedRoomView] 실습실 로드 완료: " + labs.size() + "개");
         }
     }
     
@@ -221,18 +222,18 @@ public class ReservedRoomView extends JFrame {
 
         jTable1.setModel(new javax.swing.table.DefaultTableModel(
             new Object [][] {
-                {"1교시(09:00-10:00)", "", null, null, null, null},
-                {"2교시(10:00-11:00)", null, null, null, null, null},
-                {"3교시(11:00-12:00)", null, null, null, null, null},
-                {"4교시(12:00-13:00)", null, null, null, null, null},
-                {"5교시(13:00-14:00)", null, null, null, null, null},
-                {"6교시(14:00-15:00)", null, null, null, null, null},
-                {"7교시(15:00-16:00)", null, null, null, null, null},
-                {"8교시(16:00-17:00)", null, null, null, null, null},
-                {"9교시(17:00-18:00)", null, null, null, null, null}
+                {"1교시(09:00-10:00)", "", null, null, null, null, null, null},
+                {"2교시(10:00-11:00)", null, null, null, null, null, null, null},
+                {"3교시(11:00-12:00)", null, null, null, null, null, null, null},
+                {"4교시(12:00-13:00)", null, null, null, null, null, null, null},
+                {"5교시(13:00-14:00)", null, null, null, null, null, null, null},
+                {"6교시(14:00-15:00)", null, null, null, null, null, null, null},
+                {"7교시(15:00-16:00)", null, null, null, null, null, null, null},
+                {"8교시(16:00-17:00)", null, null, null, null, null, null, null},
+                {"9교시(17:00-18:00)", null, null, null, null, null, null, null}
             },
             new String [] {
-                "", "월요일", "화요일", "수요일", "목요일", "금요일"
+                "", "월요일", "화요일", "수요일", "목요일", "금요일", "토요일", "일요일"
             }
         ));
         jScrollPane1.setViewportView(jTable1);
@@ -276,33 +277,32 @@ public class ReservedRoomView extends JFrame {
         getContentPane().setLayout(layout);
         layout.setHorizontalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(layout.createSequentialGroup()
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addGroup(layout.createSequentialGroup()
-                        .addGap(294, 294, 294)
-                        .addComponent(jLabel1))
-                    .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                        .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
-                            .addGap(293, 293, 293)
-                            .addComponent(jLabel2)
-                            .addGap(58, 58, 58)
-                            .addComponent(jLabel3)
-                            .addGap(45, 45, 45))
-                        .addGroup(layout.createSequentialGroup()
-                            .addGap(18, 18, 18)
-                            .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                                .addGroup(layout.createSequentialGroup()
-                                    .addComponent(Before)
-                                    .addGap(515, 515, 515)
-                                    .addComponent(Check))
-                                .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 663, javax.swing.GroupLayout.PREFERRED_SIZE)))))
-                .addContainerGap(21, Short.MAX_VALUE))
             .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
                 .addGap(0, 0, Short.MAX_VALUE)
                 .addComponent(Class, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addGap(28, 28, 28)
                 .addComponent(Lab, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addGap(42, 42, 42))
+            .addGroup(layout.createSequentialGroup()
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(layout.createSequentialGroup()
+                        .addGap(18, 18, 18)
+                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 843, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addGroup(layout.createSequentialGroup()
+                                .addComponent(Before)
+                                .addGap(515, 515, 515)
+                                .addComponent(Check))))
+                    .addGroup(layout.createSequentialGroup()
+                        .addGap(294, 294, 294)
+                        .addComponent(jLabel1)))
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+            .addGroup(layout.createSequentialGroup()
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                .addComponent(jLabel2)
+                .addGap(73, 73, 73)
+                .addComponent(jLabel3)
+                .addGap(60, 60, 60))
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)

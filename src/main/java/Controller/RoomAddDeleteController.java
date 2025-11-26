@@ -101,6 +101,9 @@ public class RoomAddDeleteController {
                         "성공",
             JOptionPane.INFORMATION_MESSAGE);
 
+                // ✅ ClientClassroomManager 캠시 업데이트
+                Manager.ClientClassroomManager.getInstance().refreshFromServer();
+                
                 // 목록 새로고침
     loadRoomLists();
 
@@ -183,6 +186,9 @@ public class RoomAddDeleteController {
                         "성공",
                         JOptionPane.INFORMATION_MESSAGE);
 
+                // ✅ ClientClassroomManager 캠시 업데이트
+                Manager.ClientClassroomManager.getInstance().refreshFromServer();
+                
                 // 목록 새로고침
                 loadRoomLists();
 

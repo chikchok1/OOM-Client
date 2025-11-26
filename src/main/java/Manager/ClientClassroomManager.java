@@ -192,6 +192,34 @@ public class ClientClassroomManager {
     }
     
     /**
+     * 모든 강의실 이름 목록 (List 형태)
+     */
+    public List<String> getClassrooms() {
+        List<String> names = new ArrayList<>();
+        for (ClassroomDTO dto : classrooms.values()) {
+            if (dto.isClassroom()) {
+                names.add(dto.name);
+            }
+        }
+        Collections.sort(names);
+        return names;
+    }
+    
+    /**
+     * 모든 실습실 이름 목록 (List 형태)
+     */
+    public List<String> getLabs() {
+        List<String> names = new ArrayList<>();
+        for (ClassroomDTO dto : classrooms.values()) {
+            if (dto.isLab()) {
+                names.add(dto.name);
+            }
+        }
+        Collections.sort(names);
+        return names;
+    }
+    
+    /**
      * 모든 강의실/실습실 DTO 목록 반환 (정렬됨: 강의실 먼저, 실습실 나중)
      */
     public List<ClassroomDTO> getAllClassrooms() {
