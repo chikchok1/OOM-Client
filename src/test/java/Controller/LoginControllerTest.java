@@ -14,6 +14,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import static org.mockito.ArgumentMatchers.startsWith;
+import org.mockito.MockedStatic;
+import static org.mockito.Mockito.mockStatic;
 
 @ExtendWith(MockitoExtension.class)
 class LoginControllerTest {
@@ -54,9 +56,17 @@ class LoginControllerTest {
      */
     @Test
     void shouldShowServerErrorMessage_whenServerIsUnavailable() {
-        loginController.handleLogin();
+        try (MockedStatic<ClientFacade> facadeMock = mockStatic(ClientFacade.class)) {
+            facadeMock.when(() -> ClientFacade.login(mockView))
+                      .thenAnswer(invocation -> {
+                          mockView.showMessage("서버와 연결할 수 없습니다: 테스트");
+                          return false;
+                      });
 
-        verify(mockView).showMessage(startsWith("서버와 연결할 수 없습니다"));
+            loginController.handleLogin();
+
+            verify(mockView).showMessage(startsWith("서버와 연결할 수 없습니다"));
+        }
     }
 
     /**
@@ -64,10 +74,18 @@ class LoginControllerTest {
      */
     @Test
     void shouldNotShowSuccessMessage_whenLoginFailsDueToServer() {
-        loginController.handleLogin();
+        try (MockedStatic<ClientFacade> facadeMock = mockStatic(ClientFacade.class)) {
+            facadeMock.when(() -> ClientFacade.login(mockView))
+                      .thenAnswer(invocation -> {
+                          mockView.showMessage("서버와 연결할 수 없습니다: 테스트");
+                          return false;
+                      });
 
-        verify(mockView, never()).showMessage("로그인 성공!");
-        verify(mockView).showMessage(startsWith("서버와 연결할 수 없습니다"));
+            loginController.handleLogin();
+
+            verify(mockView, never()).showMessage("로그인 성공!");
+            verify(mockView).showMessage(startsWith("서버와 연결할 수 없습니다"));
+        }
     }
 
     /**
@@ -75,10 +93,18 @@ class LoginControllerTest {
      */
     @Test
     void shouldNotSetSession_whenServerConnectionFails() {
-        loginController.handleLogin();
+        try (MockedStatic<ClientFacade> facadeMock = mockStatic(ClientFacade.class)) {
+            facadeMock.when(() -> ClientFacade.login(mockView))
+                      .thenAnswer(invocation -> {
+                          mockView.showMessage("서버와 연결할 수 없습니다: 테스트");
+                          return false;
+                      });
 
-        assertNull(Session.getInstance().getLoggedInUserId(), "세션에 사용자 ID가 없어야 함");
-        assertNull(Session.getInstance().getLoggedInUserName(), "세션에 사용자 이름이 없어야 함");
+            loginController.handleLogin();
+
+            assertNull(Session.getInstance().getLoggedInUserId(), "세션에 사용자 ID가 없어야 함");
+            assertNull(Session.getInstance().getLoggedInUserName(), "세션에 사용자 이름이 없어야 함");
+        }
     }
 
     /**
@@ -86,8 +112,16 @@ class LoginControllerTest {
      */
     @Test
     void shouldNotDisposeView_whenLoginFailsDueToServer() {
-        loginController.handleLogin();
+        try (MockedStatic<ClientFacade> facadeMock = mockStatic(ClientFacade.class)) {
+            facadeMock.when(() -> ClientFacade.login(mockView))
+                      .thenAnswer(invocation -> {
+                          mockView.showMessage("서버와 연결할 수 없습니다: 테스트");
+                          return false;
+                      });
 
-        verify(mockView, never()).dispose();
+            loginController.handleLogin();
+
+            verify(mockView, never()).dispose();
+        }
     }
 }

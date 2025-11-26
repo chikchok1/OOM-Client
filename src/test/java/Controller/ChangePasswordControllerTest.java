@@ -33,9 +33,8 @@ public class ChangePasswordControllerTest {
         mockSession = Session.getInstance();
         mockSession.setLoggedInUserId("S1234");
 
+        // Create a static mock for JOptionPane so that dialogs won't actually be shown
         mockJOptionPane = mockStatic(JOptionPane.class);
-        mockJOptionPane.when(() -> JOptionPane.showMessageDialog(any(), any()))
-                       .thenAnswer(invocation -> null);
     }
 
     @AfterEach
@@ -124,9 +123,7 @@ public class ChangePasswordControllerTest {
 
         controller.changePassword();
 
-        mockJOptionPane.verify(() ->
-            JOptionPane.showMessageDialog(any(), eq("모든 필드를 입력해주세요.")),
-            times(1)
-        );
+        // Verify exact invocation to avoid Mockito static matcher limitations
+        mockJOptionPane.verify(() -> JOptionPane.showMessageDialog(null, "모든 필드를 입력해주세요."), times(1));
     }
 }
