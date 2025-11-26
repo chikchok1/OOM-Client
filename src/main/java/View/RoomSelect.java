@@ -131,7 +131,7 @@ public class RoomSelect extends javax.swing.JFrame {
             }
         });
 
-        ViewReserved.setText("에약한 강의실 보기");
+        ViewReserved.setText("예약한 강의실 보기");
         ViewReserved.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 ViewReservedActionPerformed(evt);

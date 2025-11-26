@@ -107,7 +107,7 @@
     </Component>
     <Component class="javax.swing.JButton" name="ViewReserved">
       <Properties>
-        <Property name="text" type="java.lang.String" value="&#xc5d0;&#xc57d;&#xd55c; &#xac15;&#xc758;&#xc2e4; &#xbcf4;&#xae30;"/>
+        <Property name="text" type="java.lang.String" value="&#xc608;&#xc57d;&#xd55c; &#xac15;&#xc758;&#xc2e4; &#xbcf4;&#xae30;"/>
       </Properties>
       <Events>
         <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="ViewReservedActionPerformed"/>
