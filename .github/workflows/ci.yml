@@ -1,11 +1,9 @@
 name: Java CI with Maven
-
 on:
   push:
     branches: [ main, minju, jinwon, seonghun, seeum, jikwang ]
   pull_request:
     branches: [ main, minju, jinwon, seonghun, seeum, jikwang ]
-
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -18,4 +16,3 @@ jobs:
           distribution: 'temurin'
       - name: Build with Maven
         run: mvn -B test
-        working-directory: ./ClassReservation
