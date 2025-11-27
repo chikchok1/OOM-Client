@@ -20,6 +20,12 @@ public class ChangePasswordController {
     public void changePassword() {
         String current = view.getPresentPassword().trim();
         String newPw = view.getChangePassword().trim();
+        // Validate required fields early to avoid unnecessary server calls and
+        // to match test expectations (show message on empty fields).
+        if (current.isEmpty() || newPw.isEmpty()) {
+            JOptionPane.showMessageDialog(null, "모든 필드를 입력해주세요.");
+            return;
+        }
         String userId = Session.getInstance().getLoggedInUserId();
         String response = Controller.ClientFacade.changePasswordRequest(userId, current, newPw);
 
