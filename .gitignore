@@ -1,0 +1,29 @@
+
+target/
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+dependency-reduced-pom.xml
+buildNumber.properties
+
+# ==============
+# NetBeans
+# ==============
+nbproject/private/
+build/
+nbbuild/
+dist/
+nbdist/
+.nb-gradle/
+
+# NetBeans backup and cache
+**/nbproject/private/
+**/nbproject/config/
+**/nbproject/privatetmp/
+
+
+.DS_Store
+Thumbs.db
+.vscode/
