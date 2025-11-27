@@ -17,6 +17,7 @@ import java.util.function.Consumer;
 public class MessageDispatcher extends Thread {
     
     private static MessageDispatcher instance;
+    private static final Object lock = new Object(); // 추가적인 동기화 보장
     private final BufferedReader in;
     private final BlockingQueue<String> responseQueue;
     private Consumer<String> notificationHandler;
@@ -31,12 +32,22 @@ public class MessageDispatcher extends Thread {
     
     /**
      * 싱글톤 인스턴스 생성 및 시작
+     * Thread-safe: 동시 호출 시에도 하나의 인스턴스만 생성되도록 보장
      */
-    public static synchronized void startDispatcher(BufferedReader in) {
-        if (instance == null || !instance.isAlive()) {
-            instance = new MessageDispatcher(in);
-            instance.start();
-            System.out.println("[MessageDispatcher] 시작됨");
+    public static void startDispatcher(BufferedReader in) {
+        synchronized (lock) {
+            // 인스턴스가 없거나 종료된 경우에만 새로 생성
+            if (instance == null) {
+                instance = new MessageDispatcher(in);
+                instance.start();
+                System.out.println("[MessageDispatcher] 시작됨");
+            } else if (!instance.isAlive()) {
+                // 기존 인스턴스가 종료되었다면 새로 생성
+                instance = new MessageDispatcher(in);
+                instance.start();
+                System.out.println("[MessageDispatcher] 시작됨");
+            }
+            // 이미 실행 중인 인스턴스가 있으면 아무것도 하지 않음
         }
     }
     
@@ -44,7 +55,9 @@ public class MessageDispatcher extends Thread {
      * 싱글톤 인스턴스 반환
      */
     public static MessageDispatcher getInstance() {
-        return instance;
+        synchronized (lock) {
+            return instance;
+        }
     }
     
     /**
@@ -131,14 +144,38 @@ public class MessageDispatcher extends Thread {
     /**
      * 디스패처 재시작
      */
-    public static synchronized void restart() {
-        if (instance != null) {
-            instance.stopDispatcher();
-            instance = null;
+    public static void restart() {
+        synchronized (lock) {
+            if (instance != null) {
+                instance.stopDispatcher();
+                try {
+                    instance.join(1000); // 스레드 종료 대기
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+                instance = null;
+            }
+            
+            if (Session.getInstance().isConnected()) {
+                startDispatcher(Session.getInstance().getIn());
+            }
         }
-        
-        if (Session.getInstance().isConnected()) {
-            startDispatcher(Session.getInstance().getIn());
+    }
+    
+    /**
+     * 테스트용: 인스턴스 초기화
+     */
+    public static void resetForTest() {
+        synchronized (lock) {
+            if (instance != null) {
+                instance.stopDispatcher();
+                try {
+                    instance.join(1000);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+                instance = null;
+            }
         }
     }
 }
