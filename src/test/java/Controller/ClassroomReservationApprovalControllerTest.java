@@ -28,7 +28,9 @@ class ClassroomReservationApprovalControllerTest {
     void setUp() {
         approveButton = new JButton();
         rejectButton = new JButton();
-        model = new DefaultTableModel(new Object[]{"ID", "Time", "Day", "Room", "Name"}, 0);
+        
+        // 6개 컬럼으로 수정 (원본 코드와 동일하게)
+        model = new DefaultTableModel(new Object[]{"ID", "Time", "Day", "Room", "Name", "Extra"}, 0);
         table = new JTable(model);
 
         mockView = mock(ClassroomReservationApproval.class);
@@ -36,7 +38,7 @@ class ClassroomReservationApprovalControllerTest {
         when(mockView.getRejectButton()).thenReturn(rejectButton);
         when(mockView.getTable()).thenReturn(table);
 
-        // ✅ 싱글턴 인스턴스 초기화
+        // 싱글턴 인스턴스 초기화
         Session.resetInstance();
         mockSession = Session.getInstance();
     }
@@ -47,8 +49,9 @@ class ClassroomReservationApprovalControllerTest {
     }
 
     @Test
-    void testApproveReservation() {
-        model.addRow(new Object[]{"1", "09:00", "Monday", "A101", "홍길동"});
+    void testApproveReservation() throws Exception {
+        // 6개 컬럼에 맞춰 데이터 추가
+        model.addRow(new Object[]{"1", "09:00", "2025-11-27", "Monday", "A101", "홍길동"});
         table.setRowSelectionInterval(0, 0);
 
         StringWriter sw = new StringWriter();
@@ -57,25 +60,38 @@ class ClassroomReservationApprovalControllerTest {
         BufferedReader in = new BufferedReader(sr);
 
         try (MockedStatic<JOptionPane> dialogMock = mockStatic(JOptionPane.class)) {
-            // ✅ 싱글턴 인스턴스에 직접 설정
             mockSession.setOut(out);
             mockSession.setIn(in);
+            mockSession.setSocket(mock(java.net.Socket.class));
+            
+            // MessageDispatcher 초기화
+            Util.MessageDispatcher.startDispatcher(in);
 
+            // 모든 JOptionPane 호출 무시
             dialogMock.when(() -> JOptionPane.showMessageDialog(any(), anyString())).then(inv -> null);
+            dialogMock.when(() -> JOptionPane.showMessageDialog(any(), anyString(), anyString(), anyInt())).then(inv -> null);
 
             new ClassroomReservationApprovalController(mockView);
 
             for (ActionListener listener : approveButton.getActionListeners()) {
                 listener.actionPerformed(null);
             }
+            
+            // SwingUtilities.invokeLater 실행 대기
+            Thread.sleep(1500);
+            SwingUtilities.invokeAndWait(() -> {});
+            Thread.sleep(200);
 
-            assertEquals(0, model.getRowCount());
+            assertEquals(0, model.getRowCount(), "승인 후 테이블에서 행이 제거되어야 합니다");
+        } finally {
+            Util.MessageDispatcher.resetForTest();
         }
     }
 
     @Test
-    void testRejectReservation() {
-        model.addRow(new Object[]{"2", "13:00", "Tuesday", "B202", "김철수"});
+    void testRejectReservation() throws Exception {
+        // 6개 컬럼에 맞춰 데이터 추가
+        model.addRow(new Object[]{"2", "13:00", "2025-11-27", "Tuesday", "B202", "김철수"});
         table.setRowSelectionInterval(0, 0);
 
         StringWriter sw = new StringWriter();
@@ -84,19 +100,31 @@ class ClassroomReservationApprovalControllerTest {
         BufferedReader in = new BufferedReader(sr);
 
         try (MockedStatic<JOptionPane> dialogMock = mockStatic(JOptionPane.class)) {
-            // ✅ 싱글턴 인스턴스에 직접 설정
             mockSession.setOut(out);
             mockSession.setIn(in);
+            mockSession.setSocket(mock(java.net.Socket.class));
+            
+            // MessageDispatcher 초기화
+            Util.MessageDispatcher.startDispatcher(in);
 
+            // 모든 JOptionPane 호출 무시
             dialogMock.when(() -> JOptionPane.showMessageDialog(any(), anyString())).then(inv -> null);
+            dialogMock.when(() -> JOptionPane.showMessageDialog(any(), anyString(), anyString(), anyInt())).then(inv -> null);
 
             new ClassroomReservationApprovalController(mockView);
 
             for (ActionListener listener : rejectButton.getActionListeners()) {
                 listener.actionPerformed(null);
             }
+            
+            // SwingUtilities.invokeLater 실행 대기
+            Thread.sleep(1500);
+            SwingUtilities.invokeAndWait(() -> {});
+            Thread.sleep(200);
 
-            assertEquals(0, model.getRowCount());
+            assertEquals(0, model.getRowCount(), "거부 후 테이블에서 행이 제거되어야 합니다");
+        } finally {
+            Util.MessageDispatcher.resetForTest();
         }
     }
 
@@ -107,11 +135,13 @@ class ClassroomReservationApprovalControllerTest {
         PrintWriter out = new PrintWriter(new StringWriter());
 
         try (MockedStatic<JOptionPane> dialogMock = mockStatic(JOptionPane.class)) {
-            // ✅ 싱글턴 인스턴스에 직접 설정
             mockSession.setOut(out);
             mockSession.setIn(in);
+            mockSession.setSocket(mock(java.net.Socket.class));
 
+            // 모든 JOptionPane 호출 무시
             dialogMock.when(() -> JOptionPane.showMessageDialog(any(), anyString())).then(inv -> null);
+            dialogMock.when(() -> JOptionPane.showMessageDialog(any(), anyString(), anyString(), anyInt())).then(inv -> null);
 
             new ClassroomReservationApprovalController(mockView);
 

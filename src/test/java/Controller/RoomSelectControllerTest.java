@@ -71,10 +71,19 @@ class RoomSelectControllerTest {
     @Test
     @DisplayName("수업 예약 버튼 클릭 시 dispose 및 setVisible(true) 호출됨")
     void shouldOpenReservClassView_whenClassButtonClicked() {
+        // Session 초기화 - 서버 연결된 것처럼 모킹
+        Model.Session.resetInstance();
+        Model.Session session = Model.Session.getInstance();
+        session.setSocket(mock(java.net.Socket.class));
+        session.setOut(mock(java.io.PrintWriter.class));
+        session.setIn(mock(java.io.BufferedReader.class));
+        
         try (MockedConstruction<ReservClassView> mockConstruct = mockConstruction(ReservClassView.class,
                 (mocked, context) -> {
                     when(mocked.getBeforeButton()).thenReturn(mock(JButton.class));
                     when(mocked.getClassComboBox()).thenReturn(mock(JComboBox.class));
+                    when(mocked.getDateChooser()).thenReturn(mock(com.toedter.calendar.JDateChooser.class));
+                    when(mocked.getTimeComboBox()).thenReturn(mock(JComboBox.class));
                 })) {
 
             Assumptions.assumeTrue(classButtonListener != null);
@@ -83,16 +92,27 @@ class RoomSelectControllerTest {
             ReservClassView instance = mockConstruct.constructed().get(0);
             verify(instance).setVisible(true);
             verify(mockView).dispose();
+        } finally {
+            Model.Session.resetInstance();
         }
     }
 
     @Test
     @DisplayName("실습실 예약 버튼 클릭 시 dispose 및 setVisible(true) 호출됨")
     void shouldOpenReservLabView_whenLabButtonClicked() {
+        // Session 초기화 - 서버 연결된 것처럼 모킹
+        Model.Session.resetInstance();
+        Model.Session session = Model.Session.getInstance();
+        session.setSocket(mock(java.net.Socket.class));
+        session.setOut(mock(java.io.PrintWriter.class));
+        session.setIn(mock(java.io.BufferedReader.class));
+        
         try (MockedConstruction<ReservLabView> mockConstruct = mockConstruction(ReservLabView.class,
                 (mocked, context) -> {
                     when(mocked.getBeforeButton()).thenReturn(mock(JButton.class));
                     when(mocked.getLabComboBox()).thenReturn(mock(JComboBox.class));
+                    when(mocked.getDateChooser()).thenReturn(mock(com.toedter.calendar.JDateChooser.class));
+                    when(mocked.getTimeComboBox()).thenReturn(mock(JComboBox.class));
                 })) {
 
             Assumptions.assumeTrue(labButtonListener != null);
@@ -101,18 +121,28 @@ class RoomSelectControllerTest {
             ReservLabView instance = mockConstruct.constructed().get(0);
             verify(instance).setVisible(true);
             verify(mockView).dispose();
+        } finally {
+            Model.Session.resetInstance();
         }
     }
 
    @Test
 @DisplayName("예약 확인 버튼 클릭 시 setVisible(true) 호출됨")
 void shouldOpenReservedRoomView_whenViewReservedButtonClicked() {
+    // Session 초기화 - 서버 연결된 것처럼 모킹
+    Model.Session.resetInstance();
+    Model.Session session = Model.Session.getInstance();
+    session.setSocket(mock(java.net.Socket.class));
+    session.setOut(mock(java.io.PrintWriter.class));
+    session.setIn(mock(java.io.BufferedReader.class));
+    
     try (MockedConstruction<ReservedRoomView> mockConstruct = mockConstruction(ReservedRoomView.class,
         (mocked, context) -> {
             when(mocked.getCheckButton()).thenReturn(mock(JButton.class));
             when(mocked.getClassComboBox()).thenReturn(mock(JComboBox.class));
             when(mocked.getLabComboBox()).thenReturn(mock(JComboBox.class));
-            when(mocked.getBeforeButton()).thenReturn(mock(JButton.class)); // 🧩 이 줄이 추가되어야 함
+            when(mocked.getBeforeButton()).thenReturn(mock(JButton.class));
+            when(mocked.getDateChooser()).thenReturn(mock(com.toedter.calendar.JDateChooser.class));
         })) {
 
         Assumptions.assumeTrue(viewReservedListener != null);
@@ -120,6 +150,8 @@ void shouldOpenReservedRoomView_whenViewReservedButtonClicked() {
 
         ReservedRoomView instance = mockConstruct.constructed().get(0);
         verify(instance).setVisible(true);
+    } finally {
+        Model.Session.resetInstance();
     }
 }
 
