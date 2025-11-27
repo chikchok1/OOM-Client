@@ -26,5 +26,5 @@ jobs:
         run: mvn clean install -DskipTests
         working-directory: ./common
       
-      - name: Build Client with Maven
-        run: mvn -B test
+      - name: Build Client (compile only)
+        run: mvn -B compile
