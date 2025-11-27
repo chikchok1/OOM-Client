@@ -1,8 +1,5 @@
 package Model;
-/**
- *
- * @author minju
- */
+
 import common.model.User;
 import org.junit.jupiter.api.Test;
 
