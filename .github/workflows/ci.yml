@@ -1,18 +1,30 @@
 name: Java CI with Maven
 on:
   push:
-    branches: [ main, minju, jinwon, seonghun, seeum, jikwang ]
+    branches: [ main, jinwon, seonghun, kanghoon, minseung ]
   pull_request:
-    branches: [ main, minju, jinwon, seonghun, seeum, jikwang ]
+    branches: [ main, jinwon, seonghun, kanghoon, minseung ]
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+      
+      - name: Checkout Common Repository
+        uses: actions/checkout@v3
+        with:
+          repository: chikchok1/OOM-Common
+          path: common
+      
       - name: Set up JDK 21
         uses: actions/setup-java@v3
         with:
           java-version: '21'
           distribution: 'temurin'
-      - name: Build with Maven
+      
+      - name: Install Common dependency
+        run: mvn clean install -DskipTests
+        working-directory: ./common
+      
+      - name: Build Client with Maven
         run: mvn -B test
