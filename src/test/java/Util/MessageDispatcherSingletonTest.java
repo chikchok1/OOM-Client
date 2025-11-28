@@ -3,7 +3,9 @@ package Util;
 import Model.Session;
 import org.junit.jupiter.api.*;
 import java.io.BufferedReader;
-import java.io.StringReader;
+import java.io.IOException;
+import java.io.PipedReader;
+import java.io.PipedWriter;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -15,6 +17,15 @@ import static org.junit.jupiter.api.Assertions.*;
  * - 기타 담당: 메시지 라우팅, 큐 처리 등 비즈니스 로직 테스트
  */
 class MessageDispatcherSingletonTest {
+    
+    /**
+     * 블로킹되는 BufferedReader 생성 (스레드가 즉시 종료되지 않도록)
+     */
+    private BufferedReader createBlockingReader() throws IOException {
+        PipedReader reader = new PipedReader();
+        PipedWriter writer = new PipedWriter(reader);
+        return new BufferedReader(reader);
+    }
     
     @BeforeEach
     void setUp() {
@@ -33,9 +44,9 @@ class MessageDispatcherSingletonTest {
      */
     @Test
     @DisplayName("싱글턴 패턴: startDispatcher 후 getInstance로 동일 인스턴스 반환")
-    void testSingletonInstanceCreation() {
+    void testSingletonInstanceCreation() throws IOException {
         // Given
-        BufferedReader mockReader = new BufferedReader(new StringReader(""));
+        BufferedReader mockReader = createBlockingReader();
         
         // When
         MessageDispatcher.startDispatcher(mockReader);
@@ -52,10 +63,10 @@ class MessageDispatcherSingletonTest {
      */
     @Test
     @DisplayName("중복 startDispatcher 호출 시 기존 인스턴스 유지")
-    void testDuplicateStartDispatcher() {
+    void testDuplicateStartDispatcher() throws IOException {
         // Given
-        BufferedReader mockReader1 = new BufferedReader(new StringReader(""));
-        BufferedReader mockReader2 = new BufferedReader(new StringReader(""));
+        BufferedReader mockReader1 = createBlockingReader();
+        BufferedReader mockReader2 = createBlockingReader();
         
         // When
         MessageDispatcher.startDispatcher(mockReader1);
@@ -73,9 +84,9 @@ class MessageDispatcherSingletonTest {
      */
     @Test
     @DisplayName("디스패처 종료 후 재시작 시 새로운 인스턴스 생성")
-    void testRestartAfterStop() throws InterruptedException {
+    void testRestartAfterStop() throws InterruptedException, IOException {
         // Given
-        BufferedReader mockReader1 = new BufferedReader(new StringReader(""));
+        BufferedReader mockReader1 = createBlockingReader();
         MessageDispatcher.startDispatcher(mockReader1);
         MessageDispatcher instance1 = MessageDispatcher.getInstance();
         
@@ -83,7 +94,7 @@ class MessageDispatcherSingletonTest {
         instance1.stopDispatcher();
         Thread.sleep(200); // 종료 대기
         
-        BufferedReader mockReader2 = new BufferedReader(new StringReader(""));
+        BufferedReader mockReader2 = createBlockingReader();
         MessageDispatcher.startDispatcher(mockReader2);
         MessageDispatcher instance2 = MessageDispatcher.getInstance();
         
@@ -109,12 +120,13 @@ class MessageDispatcherSingletonTest {
      */
     @Test
     @DisplayName("싱글턴 인스턴스는 백그라운드 스레드로 실행")
-    void testInstanceIsRunningThread() throws InterruptedException {
+    void testInstanceIsRunningThread() throws InterruptedException, IOException {
         // Given
-        BufferedReader mockReader = new BufferedReader(new StringReader(""));
+        BufferedReader mockReader = createBlockingReader();
         
         // When
         MessageDispatcher.startDispatcher(mockReader);
+        Thread.sleep(100); // 스레드 시작 대기
         MessageDispatcher instance = MessageDispatcher.getInstance();
         
         // Then
@@ -129,16 +141,16 @@ class MessageDispatcherSingletonTest {
      */
     @Test
     @DisplayName("멀티스레드 환경에서 startDispatcher thread-safe 보장")
-    void testThreadSafeStartDispatcher() throws InterruptedException {
+    void testThreadSafeStartDispatcher() throws InterruptedException, IOException {
         final int THREAD_COUNT = 10;
         final MessageDispatcher[] instances = new MessageDispatcher[THREAD_COUNT];
         final Thread[] threads = new Thread[THREAD_COUNT];
+        final BufferedReader mockReader = createBlockingReader();
         
         // When: 여러 스레드에서 동시에 startDispatcher 호출
         for (int i = 0; i < THREAD_COUNT; i++) {
             final int index = i;
             threads[i] = new Thread(() -> {
-                BufferedReader mockReader = new BufferedReader(new StringReader(""));
                 MessageDispatcher.startDispatcher(mockReader);
                 instances[index] = MessageDispatcher.getInstance();
             });
@@ -163,9 +175,9 @@ class MessageDispatcherSingletonTest {
      */
     @Test
     @DisplayName("프로그램 전체에서 단 하나의 디스패처만 실행")
-    void testSingleDispatcherAcrossProgram() {
+    void testSingleDispatcherAcrossProgram() throws IOException {
         // Given
-        BufferedReader mockReader = new BufferedReader(new StringReader(""));
+        BufferedReader mockReader = createBlockingReader();
         
         // When
         MessageDispatcher.startDispatcher(mockReader);

@@ -36,15 +36,31 @@ public class MessageDispatcher extends Thread {
      */
     public static void startDispatcher(BufferedReader in) {
         synchronized (lock) {
-            // 인스턴스가 없거나 종료된 경우에만 새로 생성
+            // 인스턴스가 없으면 새로 생성
             if (instance == null) {
                 instance = new MessageDispatcher(in);
                 instance.start();
+                
+                // 스레드가 실제로 시작될 때까지 대기
+                try {
+                    Thread.sleep(50); // 스레드 시작 보장
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+                
                 System.out.println("[MessageDispatcher] 시작됨");
             } else if (!instance.isAlive()) {
                 // 기존 인스턴스가 종료되었다면 새로 생성
                 instance = new MessageDispatcher(in);
                 instance.start();
+                
+                // 스레드가 실제로 시작될 때까지 대기
+                try {
+                    Thread.sleep(50); // 스레드 시작 보장
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+                
                 System.out.println("[MessageDispatcher] 시작됨");
             }
             // 이미 실행 중인 인스턴스가 있으면 아무것도 하지 않음
