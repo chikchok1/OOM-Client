@@ -193,8 +193,8 @@ NOTIFICATION,REJECTED,reservationId,reason
 
 ## 🔗 관련 프로젝트
 
-- [OOM-Server](../OOM-Server) - 멀티스레드 서버 (33+ Commands)
-- [OOM-Common](../OOM-Common) - 공통 모듈 (DTO, Model)
+- [OOM-Server](https://github.com/chikchok1/OOM-Server) - 멀티스레드 서버 (33+ Commands)
+- [OOM-Common](https://github.com/chikchok1/OOM-Common) - 공통 모듈 (DTO, Model)
 
 ## 📄 라이선스
 
