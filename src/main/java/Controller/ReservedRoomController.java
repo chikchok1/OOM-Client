@@ -301,17 +301,14 @@ public class ReservedRoomController {
                                     System.out.println("[교수/조교] 테이블 추가: " + name);
                                 }
                             } else {
-                                // 학생: 본인 예약만 "예약됨" 표시
-                                if (name.equals(finalUserName)) {
-                                    if (current == null || current.isEmpty()) {
-                                        table.setValueAt("예약됨", row, col);
-                                        System.out.println("[학생] 테이블 업데이트: 예약됨");
-                                    } else if (!current.contains("예약됨")) {
-                                        table.setValueAt(current + ", 예약됨", row, col);
-                                        System.out.println("[학생] 테이블 추가: 예약됨");
-                                    }
-                                } else {
-                                    System.out.println("[학생] 타인 예약 무시: " + name);
+                                // 학생: 모든 예약을 "예약됨"으로 표시 (예약자 이름은 숨김)
+                                if (current == null || current.isEmpty()) {
+                                    table.setValueAt("예약됨", row, col);
+                                    System.out.println("[학생] 테이블 업데이트: 예약됨 (예약자: " + name + ")");
+                                } else if (!current.contains("예약됨")) {
+                                    // 이미 "예약됨"이 있으면 중복 표시하지 않음
+                                    table.setValueAt("예약됨", row, col);
+                                    System.out.println("[학생] 테이블 유지: 예약됨 (예약자: " + name + ")");
                                 }
                             }
                             
